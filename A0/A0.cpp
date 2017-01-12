@@ -197,18 +197,38 @@ void A0::guiLogic()
 
 	ImGui::Begin("Shape Properties", &showDebugWindow, ImVec2(100,100), opacity,
 			windowFlags);
-		// Retrieve red color component from slider and store in the first element of
-		// m_shape_color.
-		ImGui::SliderFloat("Red Channel", &m_shape_color.r, 0.0f, 1.0f);
-
-
-		// Add more gui elements here here ...
-
 
 		// Create Button, and check if it was clicked:
 		if( ImGui::Button( "Quit Application" ) ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
+
+		if( ImGui::Button( "Reset Triangle State" ) ) {
+            m_shape_color.r = 1.0f;
+            m_shape_color.g = 1.0f;
+            m_shape_color.b = 1.0f;
+
+            m_shape_translation.x = 0.0f;
+            m_shape_translation.y = 0.0f;
+
+            m_shape_size = 1.0f;
+
+            m_shape_rotation = 0.0f;
+		}
+
+		// Retrieve red color component from slider and store in the first element of m_shape_color.
+		ImGui::SliderFloat("Red Channel", &m_shape_color.r, 0.0f, 1.0f);
+		// Retrieve green color component from slider and store in the second element of m_shape_color.
+		ImGui::SliderFloat("Green Channel", &m_shape_color.g, 0.0f, 1.0f);
+		// Retrieve blue color component from slider and store in the first element of m_shape_color.
+		ImGui::SliderFloat("Blue Channel", &m_shape_color.b, 0.0f, 1.0f);
+
+		// Retrieve rotation from slider and store in m_shape_rotation.
+		ImGui::SliderFloat("Rotation Channel", &m_shape_rotation, 0.0f, 2*PI);
+
+		// Add more gui elements here here ...
+
+
 
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
@@ -335,19 +355,30 @@ bool A0::keyInputEvent(int key, int action, int mods) {
 
 	if (action == GLFW_PRESS) {
 		if (key == GLFW_KEY_EQUAL) {
-			cout << "+ key pressed" << endl;
-
-			// TODO - increase shape size.
-
+            m_shape_size += 0.1f;
 			eventHandled = true;
 		}
 		if (key == GLFW_KEY_MINUS) {
-			cout << "- key pressed" << endl;
-
-			// TODO - decrease shape size.
-
+            m_shape_size -= 0.1f;
 			eventHandled = true;
 		}
+		if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
+		if (key == GLFW_KEY_R) {
+            m_shape_color.r = 1.0f;
+            m_shape_color.g = 1.0f;
+            m_shape_color.b = 1.0f;
+
+            m_shape_translation.x = 0.0f;
+            m_shape_translation.y = 0.0f;
+
+            m_shape_size = 1.0f;
+
+            m_shape_rotation = 0.0f;
+
+            eventHandled = true;
+        }
 	}
 
 
