@@ -64,9 +64,10 @@ private:
 	glm::mat4 view;
 
     int grid[16][16];
+    int gridColours[16][16];
     int x;
     int y;
 
-	float colour[3];
+	float colours[9][3];
 	int current_col;
 };

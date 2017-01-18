@@ -19,22 +19,52 @@ static const int D = 16;
 A1::A1()
 	: current_col( 0 )
 {
-	colour[0] = 0.0f;
-	colour[1] = 0.0f;
-	colour[2] = 0.0f;
+    // Red
+    colours[0][0] = 1.0f;
+    colours[0][1] = 0.0f;
+    colours[0][2] = 0.0f;
+    // Orange
+    colours[1][0] = 1.0f;
+    colours[1][1] = 0.5f;
+    colours[1][2] = 0.0f;
+    // Yellow
+    colours[2][0] = 1.0f;
+    colours[2][1] = 1.0f;
+    colours[2][2] = 0.0f;
+    // Green
+    colours[3][0] = 0.2f;
+    colours[3][1] = 0.4f;
+    colours[3][2] = 0.2f;
+    // Blue
+    colours[4][0] = 0.0f;
+    colours[4][1] = 0.4f;
+    colours[4][2] = 1.0f;
+    // Indego
+    colours[5][0] = 0.0f;
+    colours[5][1] = 1.0f;
+    colours[5][2] = 1.0f;
+    // Violet
+    colours[6][0] = 0.4f;
+    colours[6][1] = 0.0f;
+    colours[6][2] = 0.4f;
+    // Grey-Green
+    colours[7][0] = 0.4f;
+    colours[7][1] = 0.6f;
+    colours[7][2] = 0.6f;
+    // Grey-Green
+    colours[8][0] = 1.0f;
+    colours[8][1] = 1.0f;
+    colours[8][2] = 1.0f;
 
     for (int i = 0; i < DIM; ++i) {
         for (int j = 0; j < DIM; ++j) {
-            if (i % 5 == 0 && j % 5 == 0) {
-                grid[i][j] = 1;
-            } else {
-                grid[i][j] = 0;
-            }
+            grid[i][j] = 0;
+            gridColours[i][j] = 0;
         }
     }
 
-    x = DIM-1;
-    y = DIM-1;
+    x = 0;
+    y = 0;
 }
 
 //----------------------------------------------------------------------------------------
@@ -322,6 +352,8 @@ void A1::resetGrid()
             grid[i][j] = 0;
         }
     }
+    x = 0;
+    y = 0;
 }
 
 //----------------------------------------------------------------------------------------
@@ -357,31 +389,15 @@ void A1::guiLogic()
 
 		// Prefixing a widget name with "##" keeps it from being
 		// displayed.
-
-		ImGui::PushID( 0 );
-		ImGui::ColorEdit3( "##Colour", colour );
-		ImGui::SameLine();
-		if( ImGui::RadioButton( "##Col", &current_col, 0 ) ) {
-			// Select this colour.
-		}
-		ImGui::PopID();
-
-		ImGui::PushID( 1 );
-		ImGui::ColorEdit3( "##Colour", colour );
-		ImGui::SameLine();
-		if( ImGui::RadioButton( "##Col", &current_col, 1 ) ) {
-			// Select this colour.
-		}
-		ImGui::PopID();
-
-		ImGui::PushID( 2 );
-		ImGui::ColorEdit3( "##Colour", colour );
-		ImGui::SameLine();
-		if( ImGui::RadioButton( "##Col", &current_col, 2 ) ) {
-			// Select this colour.
-		}
-		ImGui::PopID();
-
+        for (int i = 0; i < 9; ++i) {
+            ImGui::PushID(i);
+            ImGui::ColorEdit3("##Colour", colours[i]);
+            ImGui::SameLine();
+            if(ImGui::RadioButton("##Col", &current_col, i)) {
+                // Select this colour.
+            }
+		    ImGui::PopID();
+        }
 /*
 		// For convenience, you can uncomment this to show ImGui's massive
 		// demonstration window right in your application.  Very handy for
@@ -459,7 +475,7 @@ void A1::draw()
                 for (int k = 0; k < grid[i][j]; ++k) {
                     initCube(i, k, j);
                     glBindVertexArray(m_cube_vao);
-                    glUniform3f(col_uni, 1, 1, 1);
+                    glUniform3f(col_uni, colours[gridColours[i][j]][0], colours[gridColours[i][j]][1], colours[gridColours[i][j]][2]);
                     glDrawArrays(GL_LINES, 0, 2*12);
                 }
             }
@@ -570,6 +586,9 @@ bool A1::keyInputEvent(int key, int action, int mods) {
             y = std::min(D-1, y+1);
         } else if (key == GLFW_KEY_SPACE) {
             ++grid[x][y];
+            gridColours[x][y] = current_col; 
+        } else if (key == GLFW_KEY_BACKSPACE) {
+            grid[x][y] = std::max(0, grid[x][y]-1);
         } else if (key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
         } else if (key == GLFW_KEY_R) {
