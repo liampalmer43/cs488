@@ -96,6 +96,8 @@ void A1::init()
 	col_uni = m_shader.getUniformLocation( "colour" );
 
 	initGrid();
+    initCube();
+    initSquare();
 
 	// Set up initial view and projection matrices (need to do this here,
 	// since it depends on the GLFW window being set up correctly).
@@ -163,7 +165,7 @@ void A1::initGrid()
 	CHECK_GL_ERRORS;
 }
 
-void A1::initCube(int x, int y, int z)
+void A1::initCube()
 {
     // 12 edges, each with 2 points, each with 3 coordinates.
 	size_t sz = 12 * 2 * 3;
@@ -200,12 +202,6 @@ void A1::initCube(int x, int y, int z)
             verts[ct+5] = j;
             ct += 6;
         }
-    }
-    // Translate cube vertices by x,y,z.
-    for(int i = 0; i < sz; i+=3) {
-        verts[i] += x;
-        verts[i+1] += y;
-        verts[i+2] += z;
     }
 
 	// Create the vertex array to record buffer assignments.
@@ -275,65 +271,52 @@ void A1::initTriangle(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3&
 	CHECK_GL_ERRORS;
 }
 
+void A1::apply(float* a, const glm::vec3& v, int i) {
+    for (int j = 0; j < 3; ++j) {
+        a[i+j] = v[j];
+    }
+}
+
 void A1::initSquare()
 {
-    glGenVertexArrays(1, &m_vao_square);
-    glBindVertexArray(m_vao_square);
+    // 6 points, each with 3 coordinates.
+	size_t sz = 6 * 3;
+	float *verts = new float[ sz ];
+	size_t ct = 0;
+    // Triangle Vertices
+    glm::vec3 v1(0, 0, 0);
+    glm::vec3 v2(0, 0, 1);
+    glm::vec3 v3(1, 0, 1);
+    glm::vec3 v4(1, 0, 0);
+    apply(verts, v1, 0);
+    apply(verts, v2, 3);
+    apply(verts, v4, 6);
+    apply(verts, v2, 9);
+    apply(verts, v3, 12);
+    apply(verts, v4, 15);
 
-    // Enable the attribute index location for "position" when rendering.
-    GLint positionAttribLocation = m_shader.getAttribLocation( "position" );
-    glEnableVertexAttribArray(positionAttribLocation);
+	// Create the vertex array to record buffer assignments.
+	glGenVertexArrays( 1, &m_square_vao );
+	glBindVertexArray( m_square_vao );
 
-    vec3 squareVertices[] = {
-        vec3(-0.5f, -0.5f, 0.0f),  // Vertex 0
-        vec3(0.5f, 0.5f, 0.0f),    // Vertex 1
-        vec3(-0.5f, 0.5f, 0.0f),   // Vertex 2
-        vec3(0.5f, -0.5f, 0.0f),   // Vertex 3
-    };
+	// Create the cube vertex buffer
+	glGenBuffers( 1, &m_square_vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, m_square_vbo );
+	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
+		verts, GL_STREAM_DRAW );
 
-    // Generate a vertex buffer object to hold the squares's vertex data.
-    glGenBuffers(1, &m_vbo_square);
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
 
-    //-- Copy square's vertex data to the vertex buffer:
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_square);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertices), squareVertices,
-            GL_STATIC_DRAW);
-    
-
-    // NOTE: The data type used here for indices is "GLushort", which must
-    // match the index data type given to glDrawElements(...), which below
-    // in our draw( ) method is GL_UNSIGNED_SHORT.
-    // You can change the type, but they must match in both places.
-    GLushort triangleIndices[] = {
-            0,1,2,      // Triangle 0
-            0,3,1       // Triangle 1
-    };
-
-
-    // The VAO keeps track of the last bound GL_ELEMENT_ARRAY_BUFFER, which is where
-    // the indices will be stored for rendering.  Bind the VAO, and upload indices to
-    // the GL_ELEMENT_ARRAY_BUFFER target.
-        glGenBuffers(1, &m_ibo_square);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo_square);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangleIndices), triangleIndices,
-                GL_STATIC_DRAW);
-
-
-    // Tell GL how to map data from the vertex buffer "m_vbo_square" into the
-    // "position" vertex attribute index of our shader program.
-    // This mapping information is stored in the Vertex Array Object "m_vao_square".
-    // That is why we must bind "m_vao_square" first in the line above, so
-    // that "m_vao_square" captures the data mapping issued by the call to
-    // glVertexAttribPointer(...).
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_square);
-    //GLint positionAttribLocation = m_shader.getAttribLocation( "position" );
-    //glVertexAttribPointer(positionAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-    //-- Unbind target, and restore default values:
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    CHECK_GL_ERRORS;
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	// OpenGL has the buffer now, there's no need for us to keep a copy.
+	delete [] verts;
+	CHECK_GL_ERRORS;
 }
 
 //----------------------------------------------------------------------------------------
@@ -418,62 +401,46 @@ void A1::guiLogic()
 }
 
 
-void A1::drawSquare(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, const glm::vec3& v4)
-{
-    initTriangle(v1, v2, v4);
-    glBindVertexArray(m_triangle_vao);
-        glUniform3f(col_uni, 1, 0.5, 0.5);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindVertexArray( 0 );
-
-    initTriangle(v2, v3, v4);
-    glBindVertexArray(m_triangle_vao);
-        glUniform3f(col_uni, 1, 0.5, 0.5);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindVertexArray( 0 );
-
-	CHECK_GL_ERRORS;
-}
-
 //----------------------------------------------------------------------------------------
 /*
  * Called once per frame, after guiLogic().
  */
+void A1::identity(glm::mat4& m) {
+    for (int i = 0; i < 4; ++i) {
+        m[i] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+        m[i][i] = 1.0f;
+    }
+}
+
 void A1::draw()
 {
 	// Create a global transformation for the model (centre it).
 	mat4 W;
-	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
 
 	m_shader.enable();
 		glEnable( GL_DEPTH_TEST );
 
 		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
 		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
-		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
 
 		// Just draw the grid for now.
+        identity(W);
+	    W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
+		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
+
 		glBindVertexArray( m_grid_vao );
 		    glUniform3f( col_uni, 1, 1, 1 );
 		    glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
 	    glBindVertexArray( 0 );
 
-//        initSquare();
-//        glBindVertexArray(m_vao_square);
-//        const GLsizei numIndices = 6;
-//        glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, nullptr);
-
-        // Draw the square.
-        //initTriangle(glm::vec3(0,0,0), glm::vec3(0,0,1), glm::vec3(1,0,0));
-        //glBindVertexArray(m_triangle_vao);
-		//    glUniform3f( col_uni, 1, 1, 1 );
-        //    glDrawArrays(GL_TRIANGLES, 0, 3);
-	    //glBindVertexArray( 0 );
-
+        // Draw the cubes.
         for (int i = 0; i < DIM; ++i) {
             for (int j = 0; j < DIM; ++j) {
                 for (int k = 0; k < grid[i][j]; ++k) {
-                    initCube(i, k, j);
+	                identity(W);
+	                W = glm::translate(W, vec3( -float(DIM)/2.0f + i, k, -float(DIM)/2.0f + j ) );
+		            glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
+
                     glBindVertexArray(m_cube_vao);
                     glUniform3f(col_uni, colours[gridColours[i][j]][0], colours[gridColours[i][j]][1], colours[gridColours[i][j]][2]);
                     glDrawArrays(GL_LINES, 0, 2*12);
@@ -481,7 +448,16 @@ void A1::draw()
             }
         }           
 
-        drawSquare(glm::vec3(x,0,y), glm::vec3(x,0,y+1), glm::vec3(x+1,0,y+1), glm::vec3(x+1,0,y));
+        // Draw the square.
+        identity(W);
+        W = glm::translate(W, vec3( -float(DIM)/2.0f + x, grid[x][y], -float(DIM)/2.0f + y) );
+        glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
+
+		glBindVertexArray( m_square_vao );
+		    glUniform3f( col_uni, 1, 0.5, 0.5 );
+		    glDrawArrays( GL_TRIANGLES, 0, 6);
+	    glBindVertexArray( 0 );
+        //drawSquare(glm::vec3(x,0,y), glm::vec3(x,0,y+1), glm::vec3(x+1,0,y+1), glm::vec3(x+1,0,y));
 
 	m_shader.disable();
 

@@ -31,10 +31,12 @@ private:
     void resetGrid();
 
 	void initGrid();
-	void initCube(int x, int y, int z);
+	void initCube();
 	void initTriangle(const glm::vec3&  v1, const glm::vec3& v2, const glm::vec3& v3);
-	void drawSquare(const glm::vec3&  v1, const glm::vec3& v2, const glm::vec3& v3, const glm::vec3& v4);
     void initSquare();
+
+    void apply(float* a, const glm::vec3& v, int i);
+    void identity(glm::mat4& m);
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
@@ -55,9 +57,8 @@ private:
 	GLuint m_triangle_vao; // Vertex Array Object
 	GLuint m_triangle_vbo; // Vertex Buffer Object
 
-    GLuint m_vao_square;
-    GLuint m_vbo_square;
-    GLuint m_ibo_square;
+    GLuint m_square_vao;
+    GLuint m_square_vbo;
 
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;
