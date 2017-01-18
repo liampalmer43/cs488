@@ -28,7 +28,13 @@ protected:
 	virtual bool keyInputEvent(int key, int action, int mods) override;
 
 private:
+    void resetGrid();
+
 	void initGrid();
+	void initCube(int x, int y, int z);
+	void initTriangle(const glm::vec3&  v1, const glm::vec3& v2, const glm::vec3& v3);
+	void drawSquare(const glm::vec3&  v1, const glm::vec3& v2, const glm::vec3& v3, const glm::vec3& v4);
+    void initSquare();
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
@@ -41,9 +47,25 @@ private:
 	GLuint m_grid_vao; // Vertex Array Object
 	GLuint m_grid_vbo; // Vertex Buffer Object
 
+	// Fields related to cube geometry.
+	GLuint m_cube_vao; // Vertex Array Object
+	GLuint m_cube_vbo; // Vertex Buffer Object
+
+	// Fields related to triangle geometry.
+	GLuint m_triangle_vao; // Vertex Array Object
+	GLuint m_triangle_vbo; // Vertex Buffer Object
+
+    GLuint m_vao_square;
+    GLuint m_vbo_square;
+    GLuint m_ibo_square;
+
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;
 	glm::mat4 view;
+
+    int grid[16][16];
+    int x;
+    int y;
 
 	float colour[3];
 	int current_col;

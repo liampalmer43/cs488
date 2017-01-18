@@ -12,6 +12,7 @@ using namespace glm;
 using namespace std;
 
 static const size_t DIM = 16;
+static const int D = 16;
 
 //----------------------------------------------------------------------------------------
 // Constructor
@@ -21,6 +22,19 @@ A1::A1()
 	colour[0] = 0.0f;
 	colour[1] = 0.0f;
 	colour[2] = 0.0f;
+
+    for (int i = 0; i < DIM; ++i) {
+        for (int j = 0; j < DIM; ++j) {
+            if (i % 5 == 0 && j % 5 == 0) {
+                grid[i][j] = 1;
+            } else {
+                grid[i][j] = 0;
+            }
+        }
+    }
+
+    x = DIM-1;
+    y = DIM-1;
 }
 
 //----------------------------------------------------------------------------------------
@@ -68,6 +82,8 @@ void A1::init()
 
 void A1::initGrid()
 {
+    // The number of coordinates for representing the lines of the grid.
+    // (DIM+3)*2 lines, each with 2 points, each with 3 vertices.
 	size_t sz = 3 * 2 * 2 * (DIM+3);
 
 	float *verts = new float[ sz ];
@@ -117,6 +133,179 @@ void A1::initGrid()
 	CHECK_GL_ERRORS;
 }
 
+void A1::initCube(int x, int y, int z)
+{
+    // 12 edges, each with 2 points, each with 3 coordinates.
+	size_t sz = 12 * 2 * 3;
+
+	float *verts = new float[ sz ];
+	size_t ct = 0;
+    // Cube vertices.
+    for(int i = 0; i < 2; ++i) {
+        for(int j = 0; j < 2; ++j) {
+            // Extending out of X-Y plane
+            verts[ct] = i;
+            verts[ct+1] = j;
+            verts[ct+2] = 0;
+            verts[ct+3] = i;
+            verts[ct+4] = j;
+            verts[ct+5] = 1;
+            ct += 6;
+
+            // Extending out of X-Z plane
+            verts[ct] = i;
+            verts[ct+1] = 0;
+            verts[ct+2] = j;
+            verts[ct+3] = i;
+            verts[ct+4] = 1;
+            verts[ct+5] = j;
+            ct += 6;
+
+            // Extending out of Y-Z plane
+            verts[ct] = 0;
+            verts[ct+1] = i;
+            verts[ct+2] = j;
+            verts[ct+3] = 1;
+            verts[ct+4] = i;
+            verts[ct+5] = j;
+            ct += 6;
+        }
+    }
+    // Translate cube vertices by x,y,z.
+    for(int i = 0; i < sz; i+=3) {
+        verts[i] += x;
+        verts[i+1] += y;
+        verts[i+2] += z;
+    }
+
+	// Create the vertex array to record buffer assignments.
+	glGenVertexArrays( 1, &m_cube_vao );
+	glBindVertexArray( m_cube_vao );
+
+	// Create the cube vertex buffer
+	glGenBuffers( 1, &m_cube_vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, m_cube_vbo );
+	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
+		verts, GL_STREAM_DRAW );
+
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	// OpenGL has the buffer now, there's no need for us to keep a copy.
+	delete [] verts;
+
+	CHECK_GL_ERRORS;
+}
+
+// Initializes a triangle parallel to the x-z plane at position x,y,z.
+void A1::initTriangle(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3)
+{
+    // 3 points, each with 3 coordinates.
+	size_t sz = 3 * 3;
+	float *verts = new float[ sz ];
+	size_t ct = 0;
+    // Triangle Vertices
+    for(int i = 0; i < 3; ++i) {
+        glm::vec3 v = i == 0 ? v1 : (i == 1 ? v2 : v3);
+        verts[ct] = v[0];
+        verts[ct+1] = v[1];
+        verts[ct+2] = v[2];
+        ct += 3;
+    }
+
+	// Create the vertex array to record buffer assignments.
+	glGenVertexArrays( 1, &m_triangle_vao );
+	glBindVertexArray( m_triangle_vao );
+
+	// Create the cube vertex buffer
+	glGenBuffers( 1, &m_triangle_vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, m_triangle_vbo );
+	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
+		verts, GL_STREAM_DRAW );
+
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	// OpenGL has the buffer now, there's no need for us to keep a copy.
+	delete [] verts;
+	CHECK_GL_ERRORS;
+}
+
+void A1::initSquare()
+{
+    glGenVertexArrays(1, &m_vao_square);
+    glBindVertexArray(m_vao_square);
+
+    // Enable the attribute index location for "position" when rendering.
+    GLint positionAttribLocation = m_shader.getAttribLocation( "position" );
+    glEnableVertexAttribArray(positionAttribLocation);
+
+    vec3 squareVertices[] = {
+        vec3(-0.5f, -0.5f, 0.0f),  // Vertex 0
+        vec3(0.5f, 0.5f, 0.0f),    // Vertex 1
+        vec3(-0.5f, 0.5f, 0.0f),   // Vertex 2
+        vec3(0.5f, -0.5f, 0.0f),   // Vertex 3
+    };
+
+    // Generate a vertex buffer object to hold the squares's vertex data.
+    glGenBuffers(1, &m_vbo_square);
+
+    //-- Copy square's vertex data to the vertex buffer:
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_square);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertices), squareVertices,
+            GL_STATIC_DRAW);
+    
+
+    // NOTE: The data type used here for indices is "GLushort", which must
+    // match the index data type given to glDrawElements(...), which below
+    // in our draw( ) method is GL_UNSIGNED_SHORT.
+    // You can change the type, but they must match in both places.
+    GLushort triangleIndices[] = {
+            0,1,2,      // Triangle 0
+            0,3,1       // Triangle 1
+    };
+
+
+    // The VAO keeps track of the last bound GL_ELEMENT_ARRAY_BUFFER, which is where
+    // the indices will be stored for rendering.  Bind the VAO, and upload indices to
+    // the GL_ELEMENT_ARRAY_BUFFER target.
+        glGenBuffers(1, &m_ibo_square);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo_square);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangleIndices), triangleIndices,
+                GL_STATIC_DRAW);
+
+
+    // Tell GL how to map data from the vertex buffer "m_vbo_square" into the
+    // "position" vertex attribute index of our shader program.
+    // This mapping information is stored in the Vertex Array Object "m_vao_square".
+    // That is why we must bind "m_vao_square" first in the line above, so
+    // that "m_vao_square" captures the data mapping issued by the call to
+    // glVertexAttribPointer(...).
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_square);
+    //GLint positionAttribLocation = m_shader.getAttribLocation( "position" );
+    //glVertexAttribPointer(positionAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    //-- Unbind target, and restore default values:
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    CHECK_GL_ERRORS;
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Called once per frame, before guiLogic().
@@ -124,6 +313,15 @@ void A1::initGrid()
 void A1::appLogic()
 {
 	// Place per frame, application logic here ...
+}
+
+void A1::resetGrid()
+{
+    for(int i = 0; i < DIM; ++i) {
+        for(int j = 0; j < DIM; ++j) {
+            grid[i][j] = 0;
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -147,6 +345,9 @@ void A1::guiLogic()
 		if( ImGui::Button( "Quit Application" ) ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
+		if( ImGui::Button( "Reset Grid" ) ) {
+			resetGrid();
+		}
 
 		// Eventually you'll create multiple colour widgets with
 		// radio buttons.  If you use PushID/PopID to give them all
@@ -161,6 +362,22 @@ void A1::guiLogic()
 		ImGui::ColorEdit3( "##Colour", colour );
 		ImGui::SameLine();
 		if( ImGui::RadioButton( "##Col", &current_col, 0 ) ) {
+			// Select this colour.
+		}
+		ImGui::PopID();
+
+		ImGui::PushID( 1 );
+		ImGui::ColorEdit3( "##Colour", colour );
+		ImGui::SameLine();
+		if( ImGui::RadioButton( "##Col", &current_col, 1 ) ) {
+			// Select this colour.
+		}
+		ImGui::PopID();
+
+		ImGui::PushID( 2 );
+		ImGui::ColorEdit3( "##Colour", colour );
+		ImGui::SameLine();
+		if( ImGui::RadioButton( "##Col", &current_col, 2 ) ) {
 			// Select this colour.
 		}
 		ImGui::PopID();
@@ -184,6 +401,24 @@ void A1::guiLogic()
 	}
 }
 
+
+void A1::drawSquare(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, const glm::vec3& v4)
+{
+    initTriangle(v1, v2, v4);
+    glBindVertexArray(m_triangle_vao);
+        glUniform3f(col_uni, 1, 0.5, 0.5);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray( 0 );
+
+    initTriangle(v2, v3, v4);
+    glBindVertexArray(m_triangle_vao);
+        glUniform3f(col_uni, 1, 0.5, 0.5);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray( 0 );
+
+	CHECK_GL_ERRORS;
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Called once per frame, after guiLogic().
@@ -203,15 +438,36 @@ void A1::draw()
 
 		// Just draw the grid for now.
 		glBindVertexArray( m_grid_vao );
-		glUniform3f( col_uni, 1, 1, 1 );
-		glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
+		    glUniform3f( col_uni, 1, 1, 1 );
+		    glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
+	    glBindVertexArray( 0 );
 
-		// Draw the cubes
-		// Highlight the active square.
+//        initSquare();
+//        glBindVertexArray(m_vao_square);
+//        const GLsizei numIndices = 6;
+//        glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, nullptr);
+
+        // Draw the square.
+        //initTriangle(glm::vec3(0,0,0), glm::vec3(0,0,1), glm::vec3(1,0,0));
+        //glBindVertexArray(m_triangle_vao);
+		//    glUniform3f( col_uni, 1, 1, 1 );
+        //    glDrawArrays(GL_TRIANGLES, 0, 3);
+	    //glBindVertexArray( 0 );
+
+        for (int i = 0; i < DIM; ++i) {
+            for (int j = 0; j < DIM; ++j) {
+                for (int k = 0; k < grid[i][j]; ++k) {
+                    initCube(i, k, j);
+                    glBindVertexArray(m_cube_vao);
+                    glUniform3f(col_uni, 1, 1, 1);
+                    glDrawArrays(GL_LINES, 0, 2*12);
+                }
+            }
+        }           
+
+        drawSquare(glm::vec3(x,0,y), glm::vec3(x,0,y+1), glm::vec3(x+1,0,y+1), glm::vec3(x+1,0,y));
+
 	m_shader.disable();
-
-	// Restore defaults
-	glBindVertexArray( 0 );
 
 	CHECK_GL_ERRORS;
 }
@@ -304,6 +560,21 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 
 	// Fill in with event handling code...
 	if( action == GLFW_PRESS ) {
+        if (key == GLFW_KEY_RIGHT) {
+            x = std::min(D-1, x+1);
+        } else if (key == GLFW_KEY_LEFT) {
+            x = std::max(0, x-1);
+        } else if (key == GLFW_KEY_UP) {
+            y = std::max(0, y-1);
+        } else if (key == GLFW_KEY_DOWN) {
+            y = std::min(D-1, y+1);
+        } else if (key == GLFW_KEY_SPACE) {
+            ++grid[x][y];
+        } else if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+        } else if (key == GLFW_KEY_R) {
+            resetGrid();
+        }
 		// Respond to some key events.
 	}
 
