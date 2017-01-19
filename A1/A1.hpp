@@ -34,6 +34,7 @@ private:
 	void initTriangle(const glm::vec3&  v1, const glm::vec3& v2, const glm::vec3& v3);
     void initSquare();
 
+    void resetColours();
     void resetGrid();
     void apply(float* a, const glm::vec3& v, int i);
     void identity(glm::mat4& m);

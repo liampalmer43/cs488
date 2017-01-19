@@ -21,42 +21,7 @@ static const float MAX_SCALE = 6.5f;
 A1::A1()
 	: current_col( 0 )
 {
-    // Red
-    colours[0][0] = 1.0f;
-    colours[0][1] = 0.0f;
-    colours[0][2] = 0.0f;
-    // Orange
-    colours[1][0] = 1.0f;
-    colours[1][1] = 0.5f;
-    colours[1][2] = 0.0f;
-    // Yellow
-    colours[2][0] = 1.0f;
-    colours[2][1] = 1.0f;
-    colours[2][2] = 0.0f;
-    // Green
-    colours[3][0] = 0.2f;
-    colours[3][1] = 0.4f;
-    colours[3][2] = 0.2f;
-    // Blue
-    colours[4][0] = 0.0f;
-    colours[4][1] = 0.4f;
-    colours[4][2] = 1.0f;
-    // Indego
-    colours[5][0] = 0.0f;
-    colours[5][1] = 1.0f;
-    colours[5][2] = 1.0f;
-    // Violet
-    colours[6][0] = 0.4f;
-    colours[6][1] = 0.0f;
-    colours[6][2] = 0.4f;
-    // Grey-Green
-    colours[7][0] = 0.4f;
-    colours[7][1] = 0.6f;
-    colours[7][2] = 0.6f;
-    // Grey-Green
-    colours[8][0] = 1.0f;
-    colours[8][1] = 1.0f;
-    colours[8][2] = 1.0f;
+    resetColours();
 
     for (int i = 0; i < DIM; ++i) {
         for (int j = 0; j < DIM; ++j) {
@@ -124,6 +89,48 @@ void A1::init()
 		glm::radians( 45.0f ),
 		float( m_framebufferWidth ) / float( m_framebufferHeight ),
 		1.0f, 1000.0f );
+}
+
+void A1::resetColours() 
+{
+    // Red
+    colours[0][0] = 1.0f;
+    colours[0][1] = 0.0f;
+    colours[0][2] = 0.0f;
+    // Orange
+    colours[1][0] = 1.0f;
+    colours[1][1] = 0.5f;
+    colours[1][2] = 0.0f;
+    // Yellow
+    colours[2][0] = 1.0f;
+    colours[2][1] = 1.0f;
+    colours[2][2] = 0.0f;
+    // Green
+    colours[3][0] = 0.2f;
+    colours[3][1] = 0.4f;
+    colours[3][2] = 0.2f;
+    // Blue
+    colours[4][0] = 0.0f;
+    colours[4][1] = 0.4f;
+    colours[4][2] = 1.0f;
+    // Indego
+    colours[5][0] = 0.0f;
+    colours[5][1] = 1.0f;
+    colours[5][2] = 1.0f;
+    // Violet
+    colours[6][0] = 0.4f;
+    colours[6][1] = 0.0f;
+    colours[6][2] = 0.4f;
+    // Grey-Green
+    colours[7][0] = 0.4f;
+    colours[7][1] = 0.6f;
+    colours[7][2] = 0.6f;
+    // Grey-Green
+    colours[8][0] = 1.0f;
+    colours[8][1] = 1.0f;
+    colours[8][2] = 1.0f;
+
+    current_col = 0;
 }
 
 void A1::initGrid()
@@ -460,6 +467,7 @@ void A1::guiLogic()
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
 		if( ImGui::Button( "Reset Grid" ) ) {
+            resetColours();
 			resetGrid();
 		}
 
@@ -663,7 +671,7 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
  */
 bool A1::mouseScrollEvent(double xOffSet, double yOffSet) {
 	bool eventHandled(false);
-    scale = scale-yOffSet/20.0;
+    scale = scale+yOffSet/20.0;
     scale = std::max(MIN_SCALE, scale);
     scale = std::min(MAX_SCALE, scale);
     eventHandled = true;
@@ -725,6 +733,7 @@ bool A1::keyInputEvent(int key, int action, int mods) {
         } else if (key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
         } else if (key == GLFW_KEY_R) {
+            resetColours();
             resetGrid();
         } else if (key == GLFW_KEY_LEFT_SHIFT) {
             copy = true;
