@@ -37,6 +37,7 @@ private:
 
     void apply(float* a, const glm::vec3& v, int i);
     void identity(glm::mat4& m);
+    void orient(glm::mat4& m);
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
@@ -71,4 +72,11 @@ private:
 
 	float colours[9][3];
 	int current_col;
+
+    bool rotate;
+    double prevX;
+    bool valid;
+    double rotation;
+
+    float scale;
 };

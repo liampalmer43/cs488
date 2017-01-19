@@ -65,6 +65,13 @@ A1::A1()
 
     x = 0;
     y = 0;
+
+    rotate = false;
+    prevX = -1;
+    valid = false;
+    rotation = 0.0;
+
+    scale = 1.0f;
 }
 
 //----------------------------------------------------------------------------------------
@@ -337,6 +344,8 @@ void A1::resetGrid()
     }
     x = 0;
     y = 0;
+    rotation = 0;
+    scale = 1;
 }
 
 //----------------------------------------------------------------------------------------
@@ -412,6 +421,13 @@ void A1::identity(glm::mat4& m) {
     }
 }
 
+void A1::orient(glm::mat4& m) {
+    identity(m);
+    m = glm::scale(m, vec3(scale, scale, scale));
+    m = glm::rotate(m, (float)rotation/200.0f, vec3(0, 1, 0));
+	m = glm::translate(m, vec3(-float(DIM)/2.0f, 0, -float(DIM)/2.0f));
+}
+
 void A1::draw()
 {
 	// Create a global transformation for the model (centre it).
@@ -424,8 +440,9 @@ void A1::draw()
 		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
 
 		// Just draw the grid for now.
-        identity(W);
-	    W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
+        //identity(W);
+	    //W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
+        orient(W);
 		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
 
 		glBindVertexArray( m_grid_vao );
@@ -437,8 +454,8 @@ void A1::draw()
         for (int i = 0; i < DIM; ++i) {
             for (int j = 0; j < DIM; ++j) {
                 for (int k = 0; k < grid[i][j]; ++k) {
-	                identity(W);
-	                W = glm::translate(W, vec3( -float(DIM)/2.0f + i, k, -float(DIM)/2.0f + j ) );
+	                orient(W);
+	                W = glm::translate(W, vec3(i, k, j));
 		            glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
 
                     glBindVertexArray(m_cube_vao);
@@ -449,8 +466,8 @@ void A1::draw()
         }           
 
         // Draw the square.
-        identity(W);
-        W = glm::translate(W, vec3( -float(DIM)/2.0f + x, grid[x][y], -float(DIM)/2.0f + y) );
+        orient(W);
+        W = glm::translate(W, vec3(x, grid[x][y], y));
         glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
 
 		glBindVertexArray( m_square_vao );
@@ -494,6 +511,17 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
 	bool eventHandled(false);
 
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
+        if (rotate) {
+            if (valid) {
+                double dx = xPos - prevX;
+                prevX = xPos;
+                rotation += dx;
+            } else {
+                prevX = xPos;
+                valid = true;
+            }
+            eventHandled = true;
+        }
 		// Put some code here to handle rotations.  Probably need to
 		// check whether we're *dragging*, not just moving the mouse.
 		// Probably need some instance variables to track the current
@@ -514,6 +542,15 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		// The user clicked in the window.  If it's the left
 		// mouse button, initiate a rotation.
+        if (button == GLFW_MOUSE_BUTTON_LEFT) {
+            if (actions == GLFW_PRESS) {
+                rotate = true;
+            } else if (actions == GLFW_RELEASE) {
+                rotate = false;
+                valid = false;
+            }
+            eventHandled = true;
+        }
 	}
 
 	return eventHandled;
@@ -525,8 +562,8 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
  */
 bool A1::mouseScrollEvent(double xOffSet, double yOffSet) {
 	bool eventHandled(false);
-
-	// Zoom in or out.
+    scale = std::max(0.0, scale-yOffSet/20.0);
+    eventHandled = true;
 
 	return eventHandled;
 }
@@ -552,6 +589,7 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 
 	// Fill in with event handling code...
 	if( action == GLFW_PRESS ) {
+        eventHandled = true;
         if (key == GLFW_KEY_RIGHT) {
             x = std::min(D-1, x+1);
         } else if (key == GLFW_KEY_LEFT) {
@@ -569,8 +607,9 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
         } else if (key == GLFW_KEY_R) {
             resetGrid();
+        } else {
+            eventHandled = false;
         }
-		// Respond to some key events.
 	}
 
 	return eventHandled;
