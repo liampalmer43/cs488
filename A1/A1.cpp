@@ -13,6 +13,8 @@ using namespace std;
 
 static const size_t DIM = 16;
 static const int D = 16;
+static const float MIN_SCALE = 0.4f;
+static const float MAX_SCALE = 6.5f;
 
 //----------------------------------------------------------------------------------------
 // Constructor
@@ -72,6 +74,10 @@ A1::A1()
     rotation = 0.0;
 
     scale = 1.0f;
+
+    copy = false;
+    copyColour = 0;
+    copyHeight = 0;
 }
 
 //----------------------------------------------------------------------------------------
@@ -104,6 +110,7 @@ void A1::init()
 
 	initGrid();
     initCube();
+    initSolidCube();
     initSquare();
 
 	// Set up initial view and projection matrices (need to do this here,
@@ -326,6 +333,89 @@ void A1::initSquare()
 	CHECK_GL_ERRORS;
 }
 
+void A1::initSolidCube()
+{
+    // 6 faces, each with 6 points, each with 3 coordinates.
+	size_t sz = 6 * 6 * 3;
+	float *verts = new float[ sz ];
+	size_t ct = 0;
+    // Triangle Vertices
+    glm::vec3 v1(0, 0, 0);
+    glm::vec3 v2(0, 0, 1);
+    glm::vec3 v3(1, 0, 1);
+    glm::vec3 v4(1, 0, 0);
+    glm::vec3 v5(0, 1, 0);
+    glm::vec3 v6(0, 1, 1);
+    glm::vec3 v7(1, 1, 1);
+    glm::vec3 v8(1, 1, 0);
+    // Bottom Face
+    apply(verts, v1, 0);
+    apply(verts, v2, 3);
+    apply(verts, v4, 6);
+    apply(verts, v2, 9);
+    apply(verts, v3, 12);
+    apply(verts, v4, 15);
+    // Top Face
+    apply(verts, v5, 18);
+    apply(verts, v6, 21);
+    apply(verts, v8, 24);
+    apply(verts, v6, 27);
+    apply(verts, v7, 30);
+    apply(verts, v8, 33);
+    // Left Face
+    apply(verts, v1, 36);
+    apply(verts, v5, 39);
+    apply(verts, v6, 42);
+    apply(verts, v1, 45);
+    apply(verts, v2, 48);
+    apply(verts, v6, 51);
+    // Right Face
+    apply(verts, v3, 54);
+    apply(verts, v4, 57);
+    apply(verts, v8, 60);
+    apply(verts, v3, 63);
+    apply(verts, v8, 66);
+    apply(verts, v7, 69);
+    // Front Face
+    apply(verts, v1, 72);
+    apply(verts, v4, 75);
+    apply(verts, v5, 78);
+    apply(verts, v4, 81);
+    apply(verts, v5, 84);
+    apply(verts, v8, 87);
+    // Back Face
+    apply(verts, v2, 90);
+    apply(verts, v3, 93);
+    apply(verts, v6, 96);
+    apply(verts, v3, 99);
+    apply(verts, v6, 102);
+    apply(verts, v7, 105);
+
+
+	// Create the vertex array to record buffer assignments.
+	glGenVertexArrays( 1, &m_solid_cube_vao );
+	glBindVertexArray( m_solid_cube_vao );
+
+	// Create the cube vertex buffer
+	glGenBuffers( 1, &m_solid_cube_vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, m_solid_cube_vbo );
+	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
+		verts, GL_STREAM_DRAW );
+
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	// OpenGL has the buffer now, there's no need for us to keep a copy.
+	delete [] verts;
+	CHECK_GL_ERRORS;
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Called once per frame, before guiLogic().
@@ -387,6 +477,7 @@ void A1::guiLogic()
             ImGui::SameLine();
             if(ImGui::RadioButton("##Col", &current_col, i)) {
                 // Select this colour.
+                gridColours[x][y] = i;
             }
 		    ImGui::PopID();
         }
@@ -449,6 +540,7 @@ void A1::draw()
 		    glUniform3f( col_uni, 1, 1, 1 );
 		    glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
 	    glBindVertexArray( 0 );
+	    CHECK_GL_ERRORS;
 
         // Draw the cubes.
         for (int i = 0; i < DIM; ++i) {
@@ -458,9 +550,17 @@ void A1::draw()
 	                W = glm::translate(W, vec3(i, k, j));
 		            glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
 
+                    glBindVertexArray(m_solid_cube_vao);
+                        glUniform3f(col_uni, colours[gridColours[i][j]][0], colours[gridColours[i][j]][1], colours[gridColours[i][j]][2]);
+                        glDrawArrays(GL_TRIANGLES, 0, 36);
+	                glBindVertexArray(0);
+	                CHECK_GL_ERRORS;
+
                     glBindVertexArray(m_cube_vao);
-                    glUniform3f(col_uni, colours[gridColours[i][j]][0], colours[gridColours[i][j]][1], colours[gridColours[i][j]][2]);
-                    glDrawArrays(GL_LINES, 0, 2*12);
+                        glUniform3f(col_uni, 0, 0, 0);
+                        glDrawArrays(GL_LINES, 0, 2*12);
+	                glBindVertexArray(0);
+	                CHECK_GL_ERRORS;
                 }
             }
         }           
@@ -471,11 +571,12 @@ void A1::draw()
         glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
 
 		glBindVertexArray( m_square_vao );
+            glDisable(GL_DEPTH_TEST);
 		    glUniform3f( col_uni, 1, 0.5, 0.5 );
 		    glDrawArrays( GL_TRIANGLES, 0, 6);
+            glEnable(GL_DEPTH_TEST);
 	    glBindVertexArray( 0 );
-        //drawSquare(glm::vec3(x,0,y), glm::vec3(x,0,y+1), glm::vec3(x+1,0,y+1), glm::vec3(x+1,0,y));
-
+	    CHECK_GL_ERRORS;
 	m_shader.disable();
 
 	CHECK_GL_ERRORS;
@@ -562,7 +663,9 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
  */
 bool A1::mouseScrollEvent(double xOffSet, double yOffSet) {
 	bool eventHandled(false);
-    scale = std::max(0.0, scale-yOffSet/20.0);
+    scale = scale-yOffSet/20.0;
+    scale = std::max(MIN_SCALE, scale);
+    scale = std::min(MAX_SCALE, scale);
     eventHandled = true;
 
 	return eventHandled;
@@ -592,12 +695,28 @@ bool A1::keyInputEvent(int key, int action, int mods) {
         eventHandled = true;
         if (key == GLFW_KEY_RIGHT) {
             x = std::min(D-1, x+1);
+            if (copy) {
+                grid[x][y] = copyHeight;
+                gridColours[x][y] = copyColour;
+            }
         } else if (key == GLFW_KEY_LEFT) {
             x = std::max(0, x-1);
+            if (copy) {
+                grid[x][y] = copyHeight;
+                gridColours[x][y] = copyColour;
+            }
         } else if (key == GLFW_KEY_UP) {
             y = std::max(0, y-1);
+            if (copy) {
+                grid[x][y] = copyHeight;
+                gridColours[x][y] = copyColour;
+            }
         } else if (key == GLFW_KEY_DOWN) {
             y = std::min(D-1, y+1);
+            if (copy) {
+                grid[x][y] = copyHeight;
+                gridColours[x][y] = copyColour;
+            }
         } else if (key == GLFW_KEY_SPACE) {
             ++grid[x][y];
             gridColours[x][y] = current_col; 
@@ -607,10 +726,18 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
         } else if (key == GLFW_KEY_R) {
             resetGrid();
+        } else if (key == GLFW_KEY_LEFT_SHIFT) {
+            copy = true;
+            copyHeight = grid[x][y];
+            copyColour = gridColours[x][y];
         } else {
             eventHandled = false;
         }
-	}
+	} else if (action == GLFW_RELEASE) {
+        if (key == GLFW_KEY_LEFT_SHIFT) {
+            copy = false;
+        }
+    }
 
 	return eventHandled;
 }

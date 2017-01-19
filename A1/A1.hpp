@@ -28,13 +28,13 @@ protected:
 	virtual bool keyInputEvent(int key, int action, int mods) override;
 
 private:
-    void resetGrid();
-
 	void initGrid();
 	void initCube();
+	void initSolidCube();
 	void initTriangle(const glm::vec3&  v1, const glm::vec3& v2, const glm::vec3& v3);
     void initSquare();
 
+    void resetGrid();
     void apply(float* a, const glm::vec3& v, int i);
     void identity(glm::mat4& m);
     void orient(glm::mat4& m);
@@ -53,6 +53,10 @@ private:
 	// Fields related to cube geometry.
 	GLuint m_cube_vao; // Vertex Array Object
 	GLuint m_cube_vbo; // Vertex Buffer Object
+
+	// Fields related to cube geometry.
+	GLuint m_solid_cube_vao; // Vertex Array Object
+	GLuint m_solid_cube_vbo; // Vertex Buffer Object
 
 	// Fields related to triangle geometry.
 	GLuint m_triangle_vao; // Vertex Array Object
@@ -79,4 +83,8 @@ private:
     double rotation;
 
     float scale;
+
+    bool copy;
+    int copyHeight;
+    int copyColour;
 };
