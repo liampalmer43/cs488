@@ -60,6 +60,11 @@ protected:
 			const glm::vec2 & v1
 	);
 
+    glm::mat4 translation(const glm::vec3 &v);
+    glm::vec4 point(const glm::vec3 &v);
+    glm::vec4 modelToWorld(const glm::vec4 &v);
+    glm::vec4 worldToView(const glm::vec4 &v);
+
 	ShaderProgram m_shader;
 
 	GLuint m_vao;            // Vertex Array Object
@@ -69,5 +74,17 @@ protected:
 	VertexData m_vertexData;
 
 	glm::vec3 m_currentLineColour;
+
+    // Model coordinate frame.
+    glm::vec3 m_model_origin;
+    glm::vec3 m_model_x;
+    glm::vec3 m_model_y;
+    glm::vec3 m_model_z;
+
+    // View coordinate frame.
+    glm::vec3 m_view_origin;
+    glm::vec3 m_view_x;
+    glm::vec3 m_view_y;
+    glm::vec3 m_view_z;
 
 };

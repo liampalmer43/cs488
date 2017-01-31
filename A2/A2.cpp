@@ -55,6 +55,17 @@ void A2::init()
 	generateVertexBuffers();
 
 	mapVboDataToVertexAttributeLocation();
+
+    // Initialize coordinate systems.
+    m_model_origin = vec3(0.0f, 0.0f, 0.0f);
+    m_model_x = vec3(1.0f, 0.0f, 0.0f);
+    m_model_y = vec3(0.0f, 1.0f, 0.0f);
+    m_model_z = vec3(0.0f, 0.0f, 1.0f);
+
+    m_view_origin = vec3(0.0f, 3.0f, 5.0f);
+    m_view_x = vec3(-1.0f, 0.0f, 0.0f);
+    m_view_y = vec3(0.0f, 1.0f, 0.0f);
+    m_view_z = vec3(0.0f, 0.0f, -1.0f);
 }
 
 //----------------------------------------------------------------------------------------
@@ -177,6 +188,47 @@ void A2::drawLine(
 
 	m_vertexData.numVertices += 2;
 }
+/*
+void A1::identity(glm::mat4& m) {
+    for (int i = 0; i < 4; ++i) {
+        m[i] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+        m[i][i] = 1.0f;
+    }
+}
+
+void A1::orient(glm::mat4& m) {
+    identity(m);
+    m = glm::scale(m, vec3(scale, scale, scale));
+    m = glm::rotate(m, (float)rotation/200.0f, vec3(0, 1, 0));
+	m = glm::translate(m, vec3(-float(DIM)/2.0f, 0, -float(DIM)/2.0f));
+}
+*/
+glm::mat4 A2::translation(const glm::vec3 &v)
+{
+    return glm::mat4(vec4(1.0f, 0.0f, 0.0f, 0.0f), vec4(0.0f, 1.0f, 0.0f, 0.0f),
+                     vec4(0.0f, 0.0f, 1.0f, 0.0f), vec4(v, 1.0f));
+}
+
+glm::vec4 A2::point(const glm::vec3 &v)
+{
+    return vec4(v, 1.0f);
+}
+
+glm::vec4 A2::modelToWorld(const glm::vec4 &v)
+{
+    glm::mat4 r = glm::inverse(mat4(vec4(m_model_x, 0.0f), vec4(m_model_y, 0.0f), vec4(m_model_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f)));
+    glm::mat4 t = glm::translate(mat4(1.0f), -m_model_origin);
+    return r*t*v;
+}
+
+glm::vec4 A2::worldToView(const glm::vec4 &v)
+{
+    glm::mat4 r = mat4(vec4(m_model_x, 0.0f), vec4(m_model_y, 0.0f), vec4(m_model_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f));
+r = glm::rotate(r, 0.5f, m_model_y);
+r = glm::rotate(r, 0.5f, m_model_x);
+    glm::mat4 t = glm::translate(mat4(1.0f), -m_model_origin);
+    return r*t*v;
+}
 
 //----------------------------------------------------------------------------------------
 /*
@@ -184,11 +236,53 @@ void A2::drawLine(
  */
 void A2::appLogic()
 {
-	// Place per frame, application logic here ...
+	// Place per frame, application logic here:
+    // Transform model -> view.
+    // Stemming from (-1,-1,-1).
+    vector<vec3> cube_in_model;
+    cube_in_model.push_back(vec3(-1.0f, -1.0f, -1.0f));
+    cube_in_model.push_back(vec3(-1.0f, -1.0f, 1.0f));
+    cube_in_model.push_back(vec3(-1.0f, -1.0f, -1.0f));
+    cube_in_model.push_back(vec3(-1.0f, 1.0f, -1.0f));
+    cube_in_model.push_back(vec3(-1.0f, -1.0f, -1.0f));
+    cube_in_model.push_back(vec3(1.0f, -1.0f, -1.0f));
+    // Stemming from (1,1,1).
+    cube_in_model.push_back(vec3(1.0f, 1.0f, 1.0f));
+    cube_in_model.push_back(vec3(1.0f, 1.0f, -1.0f));
+    cube_in_model.push_back(vec3(1.0f, 1.0f, 1.0f));
+    cube_in_model.push_back(vec3(1.0f, -1.0f, 1.0f));
+    cube_in_model.push_back(vec3(1.0f, 1.0f, 1.0f));
+    cube_in_model.push_back(vec3(-1.0f, 1.0f, 1.0f));
+    // Stemming from (1, 1, -1).
+    cube_in_model.push_back(vec3(1.0f, 1.0f, -1.0f));
+    cube_in_model.push_back(vec3(1.0f, -1.0f, -1.0f));
+    cube_in_model.push_back(vec3(1.0f, 1.0f, -1.0f));
+    cube_in_model.push_back(vec3(-1.0f, 1.0f, -1.0f));
+    // Stemming from (1, -1, 1).
+    cube_in_model.push_back(vec3(1.0f, -1.0f, 1.0f));
+    cube_in_model.push_back(vec3(1.0f, -1.0f, -1.0f));
+    cube_in_model.push_back(vec3(1.0f, -1.0f, 1.0f));
+    cube_in_model.push_back(vec3(-1.0f, -1.0f, 1.0f));
+    // Stemming from (-1, 1, 1).
+    cube_in_model.push_back(vec3(-1.0f, 1.0f, 1.0f));
+    cube_in_model.push_back(vec3(-1.0f, 1.0f, -1.0f));
+    cube_in_model.push_back(vec3(-1.0f, 1.0f, 1.0f));
+    cube_in_model.push_back(vec3(-1.0f, -1.0f, 1.0f));
+
+    vector<vec4> cube_in_view;
+    for (int i = 0; i < cube_in_model.size(); ++i) {
+        cube_in_view.push_back(modelToWorld(worldToView(point(cube_in_model[i]))));
+    }
 
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
+	setLineColour(vec3(1.0f, 0.7f, 0.8f));
+    float s = 4.0f;
+    for (int i = 0; i < cube_in_view.size(); i += 2) {
+        drawLine(vec2(cube_in_view[i])/s, vec2(cube_in_view[i+1])/s);
+    }
+/*
 	// Draw outer square:
 	setLineColour(vec3(1.0f, 0.7f, 0.8f));
 	drawLine(vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f));
@@ -203,6 +297,7 @@ void A2::appLogic()
 	drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
 	drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
 	drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
+*/
 }
 
 //----------------------------------------------------------------------------------------
