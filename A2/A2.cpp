@@ -9,6 +9,10 @@ using namespace std;
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/io.hpp>
+
+#include <math.h>
+
+#define PI 3.14159265f
 using namespace glm;
 
 //----------------------------------------------------------------------------------------
@@ -62,10 +66,15 @@ void A2::init()
     m_model_y = vec3(0.0f, 1.0f, 0.0f);
     m_model_z = vec3(0.0f, 0.0f, 1.0f);
 
-    m_view_origin = vec3(0.0f, 3.0f, 5.0f);
+    m_view_origin = vec3(0.0f, 0.0f, 8.0f);
     m_view_x = vec3(-1.0f, 0.0f, 0.0f);
     m_view_y = vec3(0.0f, 1.0f, 0.0f);
     m_view_z = vec3(0.0f, 0.0f, -1.0f);
+
+    // Initialize field of view parameters.
+    m_theta = 90.0f;
+    m_near = 1.0f;
+    m_far = 20.0f;
 }
 
 //----------------------------------------------------------------------------------------
@@ -203,6 +212,11 @@ void A1::orient(glm::mat4& m) {
 	m = glm::translate(m, vec3(-float(DIM)/2.0f, 0, -float(DIM)/2.0f));
 }
 */
+float A2::toRad(float deg)
+{
+    return deg*PI/180.0f;
+}
+
 glm::mat4 A2::translation(const glm::vec3 &v)
 {
     return glm::mat4(vec4(1.0f, 0.0f, 0.0f, 0.0f), vec4(0.0f, 1.0f, 0.0f, 0.0f),
@@ -216,18 +230,21 @@ glm::vec4 A2::point(const glm::vec3 &v)
 
 glm::vec4 A2::modelToWorld(const glm::vec4 &v)
 {
-    glm::mat4 r = glm::inverse(mat4(vec4(m_model_x, 0.0f), vec4(m_model_y, 0.0f), vec4(m_model_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f)));
-    glm::mat4 t = glm::translate(mat4(1.0f), -m_model_origin);
+    glm::mat4 r = mat4(vec4(m_model_x, 0.0f), vec4(m_model_y, 0.0f), vec4(m_model_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    glm::mat4 t = glm::translate(mat4(1.0f), m_model_origin);
     return r*t*v;
 }
 
 glm::vec4 A2::worldToView(const glm::vec4 &v)
 {
-    glm::mat4 r = mat4(vec4(m_model_x, 0.0f), vec4(m_model_y, 0.0f), vec4(m_model_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f));
-r = glm::rotate(r, 0.5f, m_model_y);
-r = glm::rotate(r, 0.5f, m_model_x);
-    glm::mat4 t = glm::translate(mat4(1.0f), -m_model_origin);
+    glm::mat4 r = glm::inverse(mat4(vec4(m_view_x, 0.0f), vec4(m_view_y, 0.0f), vec4(m_view_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f)));
+    glm::mat4 t = glm::translate(mat4(1.0f), -m_view_origin);
     return r*t*v;
+}
+
+glm::vec2 A2::viewToDevice(const glm::vec4 &v)
+{
+    return vec2(v)/(tan(toRad(m_theta/2.0f))*v[2]);
 }
 
 //----------------------------------------------------------------------------------------
@@ -242,10 +259,10 @@ void A2::appLogic()
     vector<vec3> cube_in_model;
     cube_in_model.push_back(vec3(-1.0f, -1.0f, -1.0f));
     cube_in_model.push_back(vec3(-1.0f, -1.0f, 1.0f));
-    cube_in_model.push_back(vec3(-1.0f, -1.0f, -1.0f));
-    cube_in_model.push_back(vec3(-1.0f, 1.0f, -1.0f));
-    cube_in_model.push_back(vec3(-1.0f, -1.0f, -1.0f));
-    cube_in_model.push_back(vec3(1.0f, -1.0f, -1.0f));
+//    cube_in_model.push_back(vec3(-1.0f, -1.0f, -1.0f));
+//    cube_in_model.push_back(vec3(-1.0f, 1.0f, -1.0f));
+//    cube_in_model.push_back(vec3(-1.0f, -1.0f, -1.0f));
+//    cube_in_model.push_back(vec3(1.0f, -1.0f, -1.0f));
     // Stemming from (1,1,1).
     cube_in_model.push_back(vec3(1.0f, 1.0f, 1.0f));
     cube_in_model.push_back(vec3(1.0f, 1.0f, -1.0f));
@@ -254,10 +271,10 @@ void A2::appLogic()
     cube_in_model.push_back(vec3(1.0f, 1.0f, 1.0f));
     cube_in_model.push_back(vec3(-1.0f, 1.0f, 1.0f));
     // Stemming from (1, 1, -1).
-    cube_in_model.push_back(vec3(1.0f, 1.0f, -1.0f));
-    cube_in_model.push_back(vec3(1.0f, -1.0f, -1.0f));
-    cube_in_model.push_back(vec3(1.0f, 1.0f, -1.0f));
-    cube_in_model.push_back(vec3(-1.0f, 1.0f, -1.0f));
+//    cube_in_model.push_back(vec3(1.0f, 1.0f, -1.0f));
+//    cube_in_model.push_back(vec3(1.0f, -1.0f, -1.0f));
+//    cube_in_model.push_back(vec3(1.0f, 1.0f, -1.0f));
+//    cube_in_model.push_back(vec3(-1.0f, 1.0f, -1.0f));
     // Stemming from (1, -1, 1).
     cube_in_model.push_back(vec3(1.0f, -1.0f, 1.0f));
     cube_in_model.push_back(vec3(1.0f, -1.0f, -1.0f));
@@ -278,10 +295,25 @@ void A2::appLogic()
 	initLineData();
 
 	setLineColour(vec3(1.0f, 0.7f, 0.8f));
-    float s = 4.0f;
     for (int i = 0; i < cube_in_view.size(); i += 2) {
-        drawLine(vec2(cube_in_view[i])/s, vec2(cube_in_view[i+1])/s);
+        drawLine(viewToDevice(cube_in_view[i]), viewToDevice(cube_in_view[i+1]));
     }
+
+	setLineColour(vec3(1.0f, 0.0f, 0.0f));
+    drawLine(viewToDevice(worldToView(modelToWorld(vec4(0.0f, 0.0f, 0.0f, 1.0f)))), viewToDevice(worldToView(modelToWorld(point(m_model_x)))));
+	setLineColour(vec3(0.0f, 1.0f, 0.0f));
+    drawLine(viewToDevice(worldToView(modelToWorld(vec4(0.0f, 0.0f, 0.0f, 1.0f)))), viewToDevice(worldToView(modelToWorld(point(m_model_y)))));
+	setLineColour(vec3(0.0f, 0.0f, 1.0f));
+    drawLine(viewToDevice(worldToView(modelToWorld(vec4(0.0f, 0.0f, 0.0f, 1.0f)))), viewToDevice(worldToView(modelToWorld(point(m_model_z)))));
+
+    cout << "Start ------------_" << endl;
+    cout << m_model_y << endl;
+    cout << "World coord" << endl;
+    cout << modelToWorld(point(m_model_y)) << endl;
+    cout << "View coord" << endl;
+    cout << worldToView(modelToWorld(point(m_model_y))) << endl;
+    cout << "Device coord" << endl;
+    cout << viewToDevice(worldToView(modelToWorld(point(m_model_y)))) << endl;
 /*
 	// Draw outer square:
 	setLineColour(vec3(1.0f, 0.7f, 0.8f));
@@ -471,7 +503,25 @@ bool A2::keyInputEvent (
 		int mods
 ) {
 	bool eventHandled(false);
-
+	if( action == GLFW_PRESS ) {
+        eventHandled = true;
+        if (key == GLFW_KEY_RIGHT) {
+            glm::mat4 r = glm::rotate(mat4(1.0f), 0.2f, m_view_y);
+            m_view_x = vec3(r*vec4(m_view_x, 0.0f));
+            m_view_y = vec3(r*vec4(m_view_y, 0.0f));
+            m_view_z = vec3(r*vec4(m_view_z, 0.0f));
+            cout << "HHH" << endl;
+            cout << m_view_x << endl;
+        }
+        if (key == GLFW_KEY_LEFT) {
+            glm::mat4 r = glm::rotate(mat4(1.0f), -0.2f, m_view_y);
+            m_view_x = vec3(r*vec4(m_view_x, 0.0f));
+            m_view_y = vec3(r*vec4(m_view_y, 0.0f));
+            m_view_z = vec3(r*vec4(m_view_z, 0.0f));
+            cout << "HHH" << endl;
+            cout << m_view_x << endl;
+        }
+    }
 	// Fill in with event handling code...
 
 	return eventHandled;

@@ -62,8 +62,10 @@ protected:
 
     glm::mat4 translation(const glm::vec3 &v);
     glm::vec4 point(const glm::vec3 &v);
+    float toRad(float deg);
     glm::vec4 modelToWorld(const glm::vec4 &v);
     glm::vec4 worldToView(const glm::vec4 &v);
+    glm::vec2 viewToDevice(const glm::vec4 &v);
 
 	ShaderProgram m_shader;
 
@@ -86,5 +88,10 @@ protected:
     glm::vec3 m_view_x;
     glm::vec3 m_view_y;
     glm::vec3 m_view_z;
+
+    // Field of view variables.
+    float m_theta;
+    float m_near;
+    float m_far;
 
 };
