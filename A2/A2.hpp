@@ -84,11 +84,14 @@ protected:
     float toRad(float deg);
     glm::vec4 modelToWorld(const glm::vec4 &v);
     glm::vec4 worldToView(const glm::vec4 &v);
+    glm::vec4 modelToView(const glm::vec4 &v);
     glm::vec2 viewToDevice(const glm::vec4 &v);
     void rotateViewByAxis(double dx, Axis a);
     void translateViewByAxis(double dx, Axis a);
     void rotateModelByAxis(double dx, Axis a);
     void translateModelByAxis(double dx, Axis a);
+    float clamp(float value, float low, float high);
+    void clipProjectDrawFromView(glm::vec4 v1, glm::vec4 v2);
 
 	ShaderProgram m_shader;
 

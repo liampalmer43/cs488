@@ -94,7 +94,7 @@ void A2::init()
     m_valid = false;
 
     // Mouse scaling.
-    m_scale = 550.0f;
+    m_scale = 330.0f;
 
     // Useful points.
     O = vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -287,6 +287,11 @@ glm::vec4 A2::worldToView(const glm::vec4 &v)
 */
 }
 
+glm::vec4 A2::modelToView(const glm::vec4 &v)
+{
+    return worldToView(modelToWorld(v));
+}
+
 glm::vec2 A2::viewToDevice(const glm::vec4 &v)
 {
     return vec2(v)/(tan(toRad(m_theta/2.0f))*v[2]);
@@ -356,6 +361,98 @@ void A2::translateModelByAxis(double dx, Axis a) {
     }
 }
 
+float A2::clamp(float value, float low, float high)
+{
+    value = std::min(value, high);
+    value = std::max(value, low);
+    return value;
+}
+
+void A2::clipProjectDrawFromView(vec4 v1, vec4 v2)
+{
+    // v1 and v2 are in view coordinates.
+    // First clip to near plane.
+    if (v1.z < m_near && v2.z < m_near) {
+        // Trivial elimination by near plane.
+        return;
+    } else {
+        if (v1.z >= m_near && v2.z >= m_near) {
+            // Trivial inclusion by near plane.
+        } else {
+            // Clip to near plane before projection.
+            float t = (m_near - v2.z) / (v1.z - v2.z);
+            if (v1.z < m_near && v2.z >= m_near)
+                v1 = t*(v1-v2)+v2;
+            if (v2.z < m_near && v1.z >= m_near)
+                v2 = t*(v1-v2)+v2;
+        }
+        // Project vertices to near plane.
+        vec2 w1 = viewToDevice(v1);
+        vec2 w2 = viewToDevice(v2);
+        // Clip 2D coordinates to [-1, 1] X [-1, 1].
+        float m = -1.0f;
+        float M = 1.0f;
+
+        // X = -1 plane:
+        if (w1.x < m && w2.x < m) {
+            // Trivial exclusion.
+            return;
+        } else if (w1.x >= m && w2.x >= m) {
+            // Trivial inclusion
+        } else {
+            float t = (m - w2.x) / (w1.x - w2.x);
+            if (w1.x < m && w2.x >= m)
+                w1 = t*(w1-w2) + w2;
+            if (w2.x < m && w1.x >= m)
+                w2 = t*(w1-w2) + w2;
+        }
+
+        // X = 1 plane:
+        if (w1.x > M && w2.x > M) {
+            // Trivial exclusion.
+            return;
+        } else if (w1.x <= M && w2.x <= M) {
+            // Trivial inclusion
+        } else {
+            float t = (M - w2.x) / (w1.x - w2.x);
+            if (w1.x > M && w2.x <= M)
+                w1 = t*(w1-w2) + w2;
+            if (w2.x > M && w1.x <= M)
+                w2 = t*(w1-w2) + w2;
+        }
+
+        // Y = -1 plane:
+        if (w1.y < m && w2.y < m) {
+            // Trivial exclusion.
+            return;
+        } else if (w1.y >= m && w2.y >= m) {
+            // Trivial inclusion
+        } else {
+            float t = (m - w2.y) / (w1.y - w2.y);
+            if (w1.y < m && w2.y >= m)
+                w1 = t*(w1-w2) + w2;
+            if (w2.y < m && w1.y >= m)
+                w2 = t*(w1-w2) + w2;
+        }
+
+        // Y = 1 plane:
+        if (w1.y > M && w2.y > M) {
+            // Trivial exclusion.
+            return;
+        } else if (w1.y <= M && w2.y <= M) {
+            // Trivial inclusion
+        } else {
+            float t = (M - w2.y) / (w1.y - w2.y);
+            if (w1.y > M && w2.y <= M)
+                w1 = t*(w1-w2) + w2;
+            if (w2.y > M && w1.y <= M)
+                w2 = t*(w1-w2) + w2;
+        }
+        drawLine(w1, w2);
+    }
+}
+//drawLine(viewToDevice(modelToView(O)), viewToDevice(modelToView(e1)));
+
 //----------------------------------------------------------------------------------------
 /*
  * Called once per frame, before guiLogic().
@@ -400,29 +497,60 @@ void A2::appLogic()
         cube_in_view.push_back(worldToView(modelToWorld(toPoint(cube_in_model[i]))));
     }
 
-	// Call at the beginning of frame, before drawing lines:
+    // Clip to near plane.
 	initLineData();
-
 	setLineColour(vec3(1.0f, 0.7f, 0.8f));
+
+    vector<vec4> clip_cube_in_view;
     for (int i = 0; i < cube_in_view.size(); i += 2) {
-        drawLine(viewToDevice(cube_in_view[i]), viewToDevice(cube_in_view[i+1]));
+        vec4 v1 = cube_in_view[i];
+        vec4 v2 = cube_in_view[i+1];
+        clipProjectDrawFromView(v1, v2);
+        
+/*
+        if (v1.z < m_near && v2.z < m_near) {
+            // Trivial elimination.
+        } else if (v1.z >= m_near && v2.z >= m_near) {
+            // Trivial inclusion.
+            clip_cube_in_view.push_back(v1);
+            clip_cube_in_view.push_back(v2);
+        } else {
+            float t = (m_near - v2.z) / (v1.z - v2.z);
+            clip_cube_in_view.push_back(t*(v1-v2)+v2);
+            if (v1.z < m_near && v2.z >= m_near)
+                clip_cube_in_view.push_back(v2);
+            if (v2.z < m_near && v1.z >= m_near)
+                clip_cube_in_view.push_back(v1);
+        }
+*/
     }
+
+	// Call at the beginning of frame, before drawing lines:
+    //for (int i = 0; i < clip_cube_in_view.size(); i += 2) {
+    //    drawLine(viewToDevice(clip_cube_in_view[i]), viewToDevice(clip_cube_in_view[i+1]));
+    //}
 
     // Model gnomon.
 	setLineColour(vec3(1.0f, 0.0f, 0.0f));
-    drawLine(viewToDevice(worldToView(modelToWorld(O))), viewToDevice(worldToView(modelToWorld(e1))));
+    //drawLine(viewToDevice(modelToView(O)), viewToDevice(modelToView(e1)));
+    clipProjectDrawFromView(modelToView(O), modelToView(e1));
 	setLineColour(vec3(0.0f, 1.0f, 0.0f));
-    drawLine(viewToDevice(worldToView(modelToWorld(O))), viewToDevice(worldToView(modelToWorld(e2))));
+    //drawLine(viewToDevice(modelToView(O)), viewToDevice(modelToView(e2)));
+    clipProjectDrawFromView(modelToView(O), modelToView(e2));
 	setLineColour(vec3(0.0f, 0.0f, 1.0f));
-    drawLine(viewToDevice(worldToView(modelToWorld(O))), viewToDevice(worldToView(modelToWorld(e3))));
+    //drawLine(viewToDevice(modelToView(O)), viewToDevice(modelToView(e3)));
+    clipProjectDrawFromView(modelToView(O), modelToView(e3));
 
     // World gnomon.
 	setLineColour(vec3(1.0f, 0.0f, 0.0f));
-    drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e1)));
+    //drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e1)));
+    clipProjectDrawFromView(worldToView(O), worldToView(e1));
 	setLineColour(vec3(0.0f, 1.0f, 0.0f));
-    drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e2)));
+    //drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e2)));
+    clipProjectDrawFromView(worldToView(O), worldToView(e2));
 	setLineColour(vec3(0.0f, 0.0f, 1.0f));
-    drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e3)));
+    //drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e3)));
+    clipProjectDrawFromView(worldToView(O), worldToView(e3));
 /*
     cout << "Start ------------_" << endl;
     cout << m_model_y << endl;
@@ -589,6 +717,12 @@ bool A2::mouseMoveEvent (
                     translateViewByAxis(dx, Axis::z);
                 break;
             case Mode::perspective:
+                if (m_mouse_left)
+                    m_theta = clamp(m_theta+(float)dx, 5.0f, 160.0f);
+                if (m_mouse_middle)
+                    m_near = clamp(m_near+(float)dx, 0.1f, m_far);
+                if (m_mouse_right)
+                    m_far = std::max(m_far+(float)dx, m_near);
                 break;
             case Mode::rotateModel:
 cout << "Rotating Model" << endl;
