@@ -25,6 +25,24 @@ public:
 	GLsizei numVertices;
 };
 
+enum Mode {
+    rotateView,
+    translateView,
+    
+    perspective,
+
+    rotateModel,
+    translateModel,
+    scaleModel,
+
+    viewport,
+
+    last
+};
+
+enum Axis {
+    x, y, z
+};
 
 class A2 : public CS488Window {
 public:
@@ -61,11 +79,16 @@ protected:
 	);
 
     glm::mat4 translation(const glm::vec3 &v);
-    glm::vec4 point(const glm::vec3 &v);
+    glm::vec4 toPoint(const glm::vec3 &v);
+    glm::vec4 toVector(const glm::vec3 &v);
     float toRad(float deg);
     glm::vec4 modelToWorld(const glm::vec4 &v);
     glm::vec4 worldToView(const glm::vec4 &v);
     glm::vec2 viewToDevice(const glm::vec4 &v);
+    void rotateViewByAxis(double dx, Axis a);
+    void translateViewByAxis(double dx, Axis a);
+    void rotateModelByAxis(double dx, Axis a);
+    void translateModelByAxis(double dx, Axis a);
 
 	ShaderProgram m_shader;
 
@@ -94,4 +117,24 @@ protected:
     float m_near;
     float m_far;
 
+    // Current interaction mode.
+    Mode m_mode;
+    int m_mode_int;
+    std::vector<const char*> m_mode_names;
+    
+    // Mouse event control.
+    bool m_mouse_left;
+    bool m_mouse_middle;
+    bool m_mouse_right;
+    bool m_valid;
+    double m_prev_x;
+
+    // Mouse scaling.
+    float m_scale;
+
+    // Useful vectors.
+    glm::vec4 O;
+    glm::vec4 e1;
+    glm::vec4 e2;
+    glm::vec4 e3;
 };

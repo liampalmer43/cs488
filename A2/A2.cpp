@@ -75,6 +75,32 @@ void A2::init()
     m_theta = 90.0f;
     m_near = 1.0f;
     m_far = 20.0f;
+
+    // Initialize interaction mode.
+    m_mode = rotateView;
+    m_mode_int = 0;
+    m_mode_names.push_back("Rotate View");
+    m_mode_names.push_back("Translate View");
+    m_mode_names.push_back("Perspective");
+    m_mode_names.push_back("Rotate Model");
+    m_mode_names.push_back("Translate Model");
+    m_mode_names.push_back("Scale Model");
+    m_mode_names.push_back("Viewport");
+
+    // Mouse button control.
+    m_mouse_left = false;
+    m_mouse_middle = false;
+    m_mouse_right = false;
+    m_valid = false;
+
+    // Mouse scaling.
+    m_scale = 550.0f;
+
+    // Useful points.
+    O = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    e1 = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    e2 = vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    e3 = vec4(0.0f, 0.0f, 1.0f, 1.0f);
 }
 
 //----------------------------------------------------------------------------------------
@@ -223,28 +249,111 @@ glm::mat4 A2::translation(const glm::vec3 &v)
                      vec4(0.0f, 0.0f, 1.0f, 0.0f), vec4(v, 1.0f));
 }
 
-glm::vec4 A2::point(const glm::vec3 &v)
+glm::vec4 A2::toPoint(const glm::vec3 &v)
 {
     return vec4(v, 1.0f);
 }
 
+glm::vec4 A2::toVector(const glm::vec3 &v)
+{
+    return vec4(v, 0.0f);
+}
+
 glm::vec4 A2::modelToWorld(const glm::vec4 &v)
 {
+    glm::mat4 worldPoints = mat4(toPoint(m_model_x+m_model_origin), toPoint(m_model_y+m_model_origin),
+                                 toPoint(m_model_z+m_model_origin), toPoint(m_model_origin));
+    glm::mat4 modelPoints = mat4(e1, e2, e3, O);
+    return worldPoints * glm::inverse(modelPoints) * v;
+/*
     glm::mat4 r = mat4(vec4(m_model_x, 0.0f), vec4(m_model_y, 0.0f), vec4(m_model_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f));
     glm::mat4 t = glm::translate(mat4(1.0f), m_model_origin);
-    return r*t*v;
+    //return r*t*v;
+    return t*r*v;
+*/
 }
 
 glm::vec4 A2::worldToView(const glm::vec4 &v)
 {
+    glm::mat4 worldPoints = mat4(toPoint(m_view_x+m_view_origin), toPoint(m_view_y+m_view_origin),
+                                 toPoint(m_view_z+m_view_origin), toPoint(m_view_origin));
+    glm::mat4 viewPoints = mat4(e1, e2, e3, O);
+    return viewPoints * glm::inverse(worldPoints) * v;
+/*
     glm::mat4 r = glm::inverse(mat4(vec4(m_view_x, 0.0f), vec4(m_view_y, 0.0f), vec4(m_view_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f)));
     glm::mat4 t = glm::translate(mat4(1.0f), -m_view_origin);
-    return r*t*v;
+    //return r*t*v;
+    return t*r*v;
+*/
 }
 
 glm::vec2 A2::viewToDevice(const glm::vec4 &v)
 {
     return vec2(v)/(tan(toRad(m_theta/2.0f))*v[2]);
+}
+
+void A2::rotateViewByAxis(double dx, Axis a) {
+    glm::mat4 r;
+    switch (a) {
+        case(Axis::x):
+            r = glm::rotate(mat4(1.0f), (float)dx/m_scale, m_view_x);
+            break;
+        case(Axis::y):
+            r = glm::rotate(mat4(1.0f), (float)dx/m_scale, m_view_y);
+            break;
+        case(Axis::z):
+            r = glm::rotate(mat4(1.0f), (float)dx/m_scale, m_view_z);
+            break;
+    }
+    m_view_x = vec3(r*toVector(m_view_x));
+    m_view_y = vec3(r*toVector(m_view_y));
+    m_view_z = vec3(r*toVector(m_view_z));
+}
+
+void A2::translateViewByAxis(double dx, Axis a) {
+    switch (a) {
+        case(Axis::x):
+            m_view_origin += m_view_x*(float)dx/m_scale;
+            break;
+        case(Axis::y):
+            m_view_origin += m_view_y*(float)dx/m_scale;
+            break;
+        case(Axis::z):
+            m_view_origin += m_view_z*(float)dx/m_scale;
+            break;
+    }
+}
+
+void A2::rotateModelByAxis(double dx, Axis a) {
+    glm::mat4 r;
+    switch (a) {
+        case(Axis::x):
+            r = glm::rotate(mat4(1.0f), (float)dx/m_scale, m_model_x);
+            break;
+        case(Axis::y):
+            r = glm::rotate(mat4(1.0f), (float)dx/m_scale, m_model_y);
+            break;
+        case(Axis::z):
+            r = glm::rotate(mat4(1.0f), (float)dx/m_scale, m_model_z);
+            break;
+    }
+    m_model_x = vec3(r*toVector(m_model_x));
+    m_model_y = vec3(r*toVector(m_model_y));
+    m_model_z = vec3(r*toVector(m_model_z));
+}
+
+void A2::translateModelByAxis(double dx, Axis a) {
+    switch (a) {
+        case(Axis::x):
+            m_model_origin += m_model_x*(float)dx/m_scale;
+            break;
+        case(Axis::y):
+            m_model_origin += m_model_y*(float)dx/m_scale;
+            break;
+        case(Axis::z):
+            m_model_origin += m_model_z*(float)dx/m_scale;
+            break;
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -288,7 +397,7 @@ void A2::appLogic()
 
     vector<vec4> cube_in_view;
     for (int i = 0; i < cube_in_model.size(); ++i) {
-        cube_in_view.push_back(modelToWorld(worldToView(point(cube_in_model[i]))));
+        cube_in_view.push_back(worldToView(modelToWorld(toPoint(cube_in_model[i]))));
     }
 
 	// Call at the beginning of frame, before drawing lines:
@@ -299,13 +408,22 @@ void A2::appLogic()
         drawLine(viewToDevice(cube_in_view[i]), viewToDevice(cube_in_view[i+1]));
     }
 
+    // Model gnomon.
 	setLineColour(vec3(1.0f, 0.0f, 0.0f));
-    drawLine(viewToDevice(worldToView(modelToWorld(vec4(0.0f, 0.0f, 0.0f, 1.0f)))), viewToDevice(worldToView(modelToWorld(point(m_model_x)))));
+    drawLine(viewToDevice(worldToView(modelToWorld(O))), viewToDevice(worldToView(modelToWorld(e1))));
 	setLineColour(vec3(0.0f, 1.0f, 0.0f));
-    drawLine(viewToDevice(worldToView(modelToWorld(vec4(0.0f, 0.0f, 0.0f, 1.0f)))), viewToDevice(worldToView(modelToWorld(point(m_model_y)))));
+    drawLine(viewToDevice(worldToView(modelToWorld(O))), viewToDevice(worldToView(modelToWorld(e2))));
 	setLineColour(vec3(0.0f, 0.0f, 1.0f));
-    drawLine(viewToDevice(worldToView(modelToWorld(vec4(0.0f, 0.0f, 0.0f, 1.0f)))), viewToDevice(worldToView(modelToWorld(point(m_model_z)))));
+    drawLine(viewToDevice(worldToView(modelToWorld(O))), viewToDevice(worldToView(modelToWorld(e3))));
 
+    // World gnomon.
+	setLineColour(vec3(1.0f, 0.0f, 0.0f));
+    drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e1)));
+	setLineColour(vec3(0.0f, 1.0f, 0.0f));
+    drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e2)));
+	setLineColour(vec3(0.0f, 0.0f, 1.0f));
+    drawLine(viewToDevice(worldToView(O)), viewToDevice(worldToView(e3)));
+/*
     cout << "Start ------------_" << endl;
     cout << m_model_y << endl;
     cout << "World coord" << endl;
@@ -314,6 +432,7 @@ void A2::appLogic()
     cout << worldToView(modelToWorld(point(m_model_y))) << endl;
     cout << "Device coord" << endl;
     cout << viewToDevice(worldToView(modelToWorld(point(m_model_y)))) << endl;
+*/
 /*
 	// Draw outer square:
 	setLineColour(vec3(1.0f, 0.7f, 0.8f));
@@ -353,6 +472,15 @@ void A2::guiLogic()
 
 
 		// Add more gui elements here here ...
+        for (int i = Mode::rotateView; i < Mode::last; ++i) {
+            ImGui::PushID(i);
+            if (ImGui::RadioButton("##Mode", &m_mode_int, i)) {
+                m_mode = static_cast<Mode>(i);
+            }
+		    ImGui::PopID();
+            ImGui::SameLine();
+		    ImGui::Text("%s", m_mode_names[i]);
+        }
 
 
 		// Create Button, and check if it was clicked:
@@ -441,6 +569,70 @@ bool A2::mouseMoveEvent (
 		double yPos
 ) {
 	bool eventHandled(false);
+	if (!ImGui::IsMouseHoveringAnyWindow()) {
+        double dx = xPos - m_prev_x;
+        switch (m_mode) {
+            case Mode::rotateView:
+                if (m_mouse_left)
+                    rotateViewByAxis(dx, Axis::x);
+                if (m_mouse_middle)
+                    rotateViewByAxis(dx, Axis::y);
+                if (m_mouse_right)
+                    rotateViewByAxis(dx, Axis::z);
+                break;
+            case Mode::translateView:
+                if (m_mouse_left)
+                    translateViewByAxis(dx, Axis::x);
+                if (m_mouse_middle)
+                    translateViewByAxis(dx, Axis::y);
+                if (m_mouse_right)
+                    translateViewByAxis(dx, Axis::z);
+                break;
+            case Mode::perspective:
+                break;
+            case Mode::rotateModel:
+cout << "Rotating Model" << endl;
+cout << m_mouse_left << m_mouse_middle << m_mouse_right << endl;
+cout << m_model_origin << endl;
+cout << m_model_x << endl;
+cout << m_model_y << endl;
+cout << m_model_z << endl;
+cout << "modelToWorld(e3)" << endl;
+cout << modelToWorld(e3) << endl;
+cout << worldToView(modelToWorld(e3)) << endl;
+//drawLine(viewToDevice(worldToView(modelToWorld(O))), viewToDevice(worldToView(modelToWorld(e2))));
+                if (m_mouse_left)
+                    rotateModelByAxis(dx, Axis::x);
+                if (m_mouse_middle)
+                    rotateModelByAxis(dx, Axis::y);
+                if (m_mouse_right)
+                    rotateModelByAxis(dx, Axis::z);
+                break;
+            case Mode::translateModel:
+cout << "Translating Model" << endl;
+cout << m_mouse_left << m_mouse_middle << m_mouse_right << endl;
+                if (m_mouse_left)
+                    translateModelByAxis(dx, Axis::x);
+                if (m_mouse_middle)
+                    translateModelByAxis(dx, Axis::y);
+                if (m_mouse_right)
+                    translateModelByAxis(dx, Axis::z);
+                break;
+            case Mode::scaleModel:
+                break;
+            case Mode::viewport:
+                break;
+            default:
+                break;
+        }
+        m_prev_x = xPos;
+        eventHandled = true;
+		// Put some code here to handle rotations.  Probably need to
+		// check whether we're *dragging*, not just moving the mouse.
+		// Probably need some instance variables to track the current
+		// rotation amount, and maybe the previous X position (so 
+		// that you can rotate relative to the *change* in X.
+	}
 
 	// Fill in with event handling code...
 
@@ -458,7 +650,32 @@ bool A2::mouseButtonInputEvent (
 ) {
 	bool eventHandled(false);
 
-	// Fill in with event handling code...
+	if (!ImGui::IsMouseHoveringAnyWindow()) {
+		// The user clicked in the window.  If it's the left
+		// mouse button, initiate a rotation.
+        if (button == GLFW_MOUSE_BUTTON_LEFT) {
+            if (actions == GLFW_PRESS) {
+                m_mouse_left = true;
+            } else if (actions == GLFW_RELEASE) {
+                m_mouse_left = false;
+            }
+            eventHandled = true;
+        } else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+            if (actions == GLFW_PRESS) {
+                m_mouse_middle = true;
+            } else if (actions == GLFW_RELEASE) {
+                m_mouse_middle = false;
+            }
+            eventHandled = true;
+        } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+            if (actions == GLFW_PRESS) {
+                m_mouse_right = true;
+            } else if (actions == GLFW_RELEASE) {
+                m_mouse_right = false;
+            }
+            eventHandled = true;
+        }
+	}
 
 	return eventHandled;
 }
@@ -510,16 +727,20 @@ bool A2::keyInputEvent (
             m_view_x = vec3(r*vec4(m_view_x, 0.0f));
             m_view_y = vec3(r*vec4(m_view_y, 0.0f));
             m_view_z = vec3(r*vec4(m_view_z, 0.0f));
-            cout << "HHH" << endl;
-            cout << m_view_x << endl;
         }
         if (key == GLFW_KEY_LEFT) {
             glm::mat4 r = glm::rotate(mat4(1.0f), -0.2f, m_view_y);
             m_view_x = vec3(r*vec4(m_view_x, 0.0f));
             m_view_y = vec3(r*vec4(m_view_y, 0.0f));
             m_view_z = vec3(r*vec4(m_view_z, 0.0f));
-            cout << "HHH" << endl;
-            cout << m_view_x << endl;
+        }
+        if (key == GLFW_KEY_O) {
+            m_mode = rotateView;
+        } else if (key == GLFW_KEY_N) {
+            m_mode = translateView;
+        }
+    } else if (action == GLFW_RELEASE) {
+        if (key == GLFW_KEY_LEFT_SHIFT) {
         }
     }
 	// Fill in with event handling code...
