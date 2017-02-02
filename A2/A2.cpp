@@ -90,8 +90,8 @@ void A2::init()
     e3 = vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
     // Window parameters.
-    m_width = 650;
-    m_height = 650;
+    m_width = 768;
+    m_height = 768;
 
 }
 
