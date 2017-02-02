@@ -78,7 +78,9 @@ protected:
 			const glm::vec2 & v1
 	);
 
-    glm::mat4 translation(const glm::vec3 &v);
+    void reset();
+    glm::mat4 getTranslationMatrix(const glm::vec3 &v);
+    glm::mat4 getRotationMatrix(float angle, const glm::vec3 &v);
     glm::vec4 toPoint(const glm::vec3 &v);
     glm::vec4 toVector(const glm::vec3 &v);
     float toRad(float deg);

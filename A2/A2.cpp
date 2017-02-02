@@ -60,28 +60,10 @@ void A2::init()
 
 	mapVboDataToVertexAttributeLocation();
 
-    // Initialize coordinate systems.
-    m_model_origin = vec3(0.0f, 0.0f, 0.0f);
-    m_model_x = vec3(1.0f, 0.0f, 0.0f);
-    m_model_y = vec3(0.0f, 1.0f, 0.0f);
-    m_model_z = vec3(0.0f, 0.0f, 1.0f);
-    m_model_scale_x = 1.0f;
-    m_model_scale_y = 1.0f;
-    m_model_scale_z = 1.0f;
+    // Initialize various data.
+    reset();
 
-    m_view_origin = vec3(0.0f, 0.0f, 15.0f);
-    m_view_x = vec3(-1.0f, 0.0f, 0.0f);
-    m_view_y = vec3(0.0f, 1.0f, 0.0f);
-    m_view_z = vec3(0.0f, 0.0f, -1.0f);
-
-    // Initialize field of view parameters.
-    m_theta = 30.0f;
-    m_near = 1.0f;
-    m_far = 20.0f;
-
-    // Initialize interaction mode.
-    m_mode = rotateModel;
-    m_mode_int = static_cast<int>(m_mode);
+    // Mode names.
     m_mode_names.push_back("Rotate View");
     m_mode_names.push_back("Translate View");
     m_mode_names.push_back("Perspective");
@@ -110,6 +92,33 @@ void A2::init()
     // Window parameters.
     m_width = 650;
     m_height = 650;
+
+}
+
+void A2::reset()
+{
+    // Initialize coordinate systems.
+    m_model_origin = vec3(0.0f, 0.0f, 0.0f);
+    m_model_x = vec3(1.0f, 0.0f, 0.0f);
+    m_model_y = vec3(0.0f, 1.0f, 0.0f);
+    m_model_z = vec3(0.0f, 0.0f, 1.0f);
+    m_model_scale_x = 1.0f;
+    m_model_scale_y = 1.0f;
+    m_model_scale_z = 1.0f;
+
+    m_view_origin = vec3(0.0f, 0.0f, 15.0f);
+    m_view_x = vec3(-1.0f, 0.0f, 0.0f);
+    m_view_y = vec3(0.0f, 1.0f, 0.0f);
+    m_view_z = vec3(0.0f, 0.0f, -1.0f);
+
+    // Initialize field of view parameters.
+    m_theta = 30.0f;
+    m_near = 1.0f;
+    m_far = 20.0f;
+
+    // Initialize interaction mode.
+    m_mode = rotateModel;
+    m_mode_int = static_cast<int>(m_mode);
 
     // Viewport parameters.
     m_viewport_x1 = -0.9f;
@@ -238,30 +247,10 @@ void A2::drawLine(
 
 	m_vertexData.numVertices += 2;
 }
-/*
-void A1::identity(glm::mat4& m) {
-    for (int i = 0; i < 4; ++i) {
-        m[i] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-        m[i][i] = 1.0f;
-    }
-}
 
-void A1::orient(glm::mat4& m) {
-    identity(m);
-    m = glm::scale(m, vec3(scale, scale, scale));
-    m = glm::rotate(m, (float)rotation/200.0f, vec3(0, 1, 0));
-	m = glm::translate(m, vec3(-float(DIM)/2.0f, 0, -float(DIM)/2.0f));
-}
-*/
 float A2::toRad(float deg)
 {
     return deg*PI/180.0f;
-}
-
-glm::mat4 A2::translation(const glm::vec3 &v)
-{
-    return glm::mat4(vec4(1.0f, 0.0f, 0.0f, 0.0f), vec4(0.0f, 1.0f, 0.0f, 0.0f),
-                     vec4(0.0f, 0.0f, 1.0f, 0.0f), vec4(v, 1.0f));
 }
 
 glm::vec4 A2::toPoint(const glm::vec3 &v)
@@ -312,6 +301,38 @@ glm::vec2 A2::viewToDevice(const glm::vec4 &v)
     return vec2(v)/(tan(toRad(m_theta/2.0f))*v[2]);
 }
 
+glm::mat4 A2::getRotationMatrix(float a, const glm::vec3 &u)
+{
+    mat4 r = mat4(1.0f);
+    float d1 = cos(a)+u.x*u.x*(1-cos(a));
+    float v1 = u.x*u.y*(1-cos(a))-u.z*sin(a);
+    float v2 = u.x*u.z*(1-cos(a))+u.y*sin(a);
+    float d2 = cos(a)+u.y*u.y*(1-cos(a));
+    float v3 = u.y*u.z*(1-cos(a))-u.x*sin(a);
+    float d3 = cos(a)+u.z*u.z*(1-cos(a));
+    r[0][0] = d1;
+    r[1][1] = d2;
+    r[2][2] = d3;
+
+    r[1][0] = v1;
+    r[0][1] = v1;
+
+    r[2][0] = v2;
+    r[0][2] = v2;
+
+    r[2][1] = v3;
+    r[1][2] = v3;
+cout << r << endl;
+
+    return r;
+}
+
+glm::mat4 A2::getTranslationMatrix(const glm::vec3 &v)
+{
+    return glm::mat4(vec4(1.0f, 0.0f, 0.0f, 0.0f), vec4(0.0f, 1.0f, 0.0f, 0.0f),
+                     vec4(0.0f, 0.0f, 1.0f, 0.0f), vec4(v, 1.0f));
+}
+
 void A2::rotateViewByAxis(double dx, Axis a) {
     glm::mat4 r;
     switch (a) {
@@ -348,6 +369,7 @@ void A2::rotateModelByAxis(double dx, Axis a) {
     glm::mat4 r;
     switch (a) {
         case(Axis::x):
+            //r = getRotationMatrix((float)dx/m_rotation_scale, m_model_x);
             r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_model_x);
             break;
         case(Axis::y):
@@ -603,7 +625,14 @@ void A2::guiLogic()
 	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
 			windowFlags);
 
+		if( ImGui::Button( "Quit Application" ) ) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
+		if( ImGui::Button( "Reset Application" ) ) {
+			reset();
+		}
 
+		ImGui::Text("CS 488: A2 Pipeline");
 		// Add more gui elements here here ...
         for (int i = Mode::rotateView; i < Mode::last; ++i) {
             ImGui::PushID(i);
@@ -616,13 +645,7 @@ void A2::guiLogic()
         }
 		ImGui::Text( "Near Plane: %.1f", m_near);
 		ImGui::Text( "Far Plane: %.1f", m_far);
-		ImGui::Text( "Field of View: %.1f Degrees", m_theta);
-
-
-		// Create Button, and check if it was clicked:
-		if( ImGui::Button( "Quit Application" ) ) {
-			glfwSetWindowShouldClose(m_window, GL_TRUE);
-		}
+		ImGui::Text( "Field of View: %.1f Deg", m_theta);
 
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
@@ -901,6 +924,10 @@ bool A2::keyInputEvent (
             m_mode = Mode::scaleModel;
         } else if (key == GLFW_KEY_V) {
             m_mode = Mode::viewport;
+        } else if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+        } else if (key == GLFW_KEY_A) {
+            reset();
         } else {
             eventHandled = false;
         }
