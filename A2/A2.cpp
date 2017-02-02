@@ -265,30 +265,33 @@ glm::vec4 A2::toVector(const glm::vec3 &v)
 
 glm::vec4 A2::modelToWorld(const glm::vec4 &v)
 {
+    /* Option1:
     glm::mat4 worldPoints = mat4(toPoint(m_model_x+m_model_origin), toPoint(m_model_y+m_model_origin),
                                  toPoint(m_model_z+m_model_origin), toPoint(m_model_origin));
     glm::mat4 modelPoints = mat4(e1, e2, e3, O);
     return worldPoints * glm::inverse(modelPoints) * v;
-/*
+    */
+
     glm::mat4 r = mat4(vec4(m_model_x, 0.0f), vec4(m_model_y, 0.0f), vec4(m_model_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    glm::mat4 t = glm::translate(mat4(1.0f), m_model_origin);
-    //return r*t*v;
+    //glm::mat4 t = glm::translate(mat4(1.0f), m_model_origin);
+    glm::mat4 t = getTranslationMatrix(m_model_origin);
     return t*r*v;
-*/
 }
 
 glm::vec4 A2::worldToView(const glm::vec4 &v)
 {
+    /* Option1:
     glm::mat4 worldPoints = mat4(toPoint(m_view_x+m_view_origin), toPoint(m_view_y+m_view_origin),
                                  toPoint(m_view_z+m_view_origin), toPoint(m_view_origin));
     glm::mat4 viewPoints = mat4(e1, e2, e3, O);
     return viewPoints * glm::inverse(worldPoints) * v;
-/*
-    glm::mat4 r = glm::inverse(mat4(vec4(m_view_x, 0.0f), vec4(m_view_y, 0.0f), vec4(m_view_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f)));
-    glm::mat4 t = glm::translate(mat4(1.0f), -m_view_origin);
-    //return r*t*v;
-    return t*r*v;
-*/
+    */
+
+    //glm::mat4 r = glm::inverse(mat4(vec4(m_view_x, 0.0f), vec4(m_view_y, 0.0f), vec4(m_view_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f)));
+    glm::mat4 r = glm::transpose(mat4(vec4(m_view_x, 0.0f), vec4(m_view_y, 0.0f), vec4(m_view_z, 0.0f), vec4(0.0f, 0.0f, 0.0f, 1.0f)));
+    //glm::mat4 t = glm::translate(mat4(1.0f), -m_view_origin);
+    glm::mat4 t = getTranslationMatrix(-m_view_origin);
+    return r*t*v;
 }
 
 glm::vec4 A2::modelToView(const glm::vec4 &v)
@@ -322,7 +325,6 @@ glm::mat4 A2::getRotationMatrix(float a, const glm::vec3 &u)
 
     r[2][1] = v3;
     r[1][2] = v3;
-cout << r << endl;
 
     return r;
 }
