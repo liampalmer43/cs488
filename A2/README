@@ -1,0 +1,18 @@
+Compilation:
+
+No changes to default premake4/make combination:
+cd cs488
+premake4 gmake
+make
+cd A2
+premake4 gmake
+make
+./A2
+
+Lab Machine gl15 was used.
+
+
+
+Manual:
+
+All required features were implemented.  No glm matrix construction functions were used.  The viewport is outlined in white.  For each of the model and world coordinate axes, red is x, green is y, and blue is z.
