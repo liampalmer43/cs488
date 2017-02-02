@@ -108,6 +108,9 @@ protected:
     glm::vec3 m_model_x;
     glm::vec3 m_model_y;
     glm::vec3 m_model_z;
+    float m_model_scale_x;
+    float m_model_scale_y;
+    float m_model_scale_z;
 
     // View coordinate frame.
     glm::vec3 m_view_origin;
@@ -129,15 +132,27 @@ protected:
     bool m_mouse_left;
     bool m_mouse_middle;
     bool m_mouse_right;
-    bool m_valid;
     double m_prev_x;
+    float m_mouse_pos_x;
+    float m_mouse_pos_y;
 
     // Mouse scaling.
-    float m_scale;
+    float m_rotation_scale;
+    float m_translation_scale;
 
-    // Useful vectors.
+    // Useful points.
     glm::vec4 O;
     glm::vec4 e1;
     glm::vec4 e2;
     glm::vec4 e3;
+
+    // Window parameters.
+    int m_width;
+    int m_height;
+
+    // Viewport parameters.
+    float m_viewport_x1;
+    float m_viewport_y1;
+    float m_viewport_x2;
+    float m_viewport_y2;
 };
