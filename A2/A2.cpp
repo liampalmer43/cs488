@@ -307,24 +307,31 @@ glm::vec2 A2::viewToDevice(const glm::vec4 &v)
 glm::mat4 A2::getRotationMatrix(float a, const glm::vec3 &u)
 {
     mat4 r = mat4(1.0f);
+
     float d1 = cos(a)+u.x*u.x*(1-cos(a));
+    float d2 = cos(a)+u.y*u.y*(1-cos(a));
+    float d3 = cos(a)+u.z*u.z*(1-cos(a));
+
     float v1 = u.x*u.y*(1-cos(a))-u.z*sin(a);
     float v2 = u.x*u.z*(1-cos(a))+u.y*sin(a);
-    float d2 = cos(a)+u.y*u.y*(1-cos(a));
     float v3 = u.y*u.z*(1-cos(a))-u.x*sin(a);
-    float d3 = cos(a)+u.z*u.z*(1-cos(a));
+
+    float v4 = u.x*u.y*(1-cos(a))+u.z*sin(a);
+    float v5 = u.x*u.z*(1-cos(a))-u.y*sin(a);
+    float v6 = u.y*u.z*(1-cos(a))+u.x*sin(a);
+
     r[0][0] = d1;
     r[1][1] = d2;
     r[2][2] = d3;
 
     r[1][0] = v1;
-    r[0][1] = v1;
+    r[0][1] = v4;
 
     r[2][0] = v2;
-    r[0][2] = v2;
+    r[0][2] = v5;
 
     r[2][1] = v3;
-    r[1][2] = v3;
+    r[1][2] = v6;
 
     return r;
 }
@@ -339,13 +346,16 @@ void A2::rotateViewByAxis(double dx, Axis a) {
     glm::mat4 r;
     switch (a) {
         case(Axis::x):
-            r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_view_x);
+            r = getRotationMatrix((float)dx/m_rotation_scale, m_view_x);
+            //r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_view_x);
             break;
         case(Axis::y):
-            r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_view_y);
+            r = getRotationMatrix((float)dx/m_rotation_scale, m_view_y);
+            //r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_view_y);
             break;
         case(Axis::z):
-            r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_view_z);
+            r = getRotationMatrix((float)dx/m_rotation_scale, m_view_z);
+            //r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_view_z);
             break;
     }
     m_view_x = vec3(r*toVector(m_view_x));
@@ -371,14 +381,16 @@ void A2::rotateModelByAxis(double dx, Axis a) {
     glm::mat4 r;
     switch (a) {
         case(Axis::x):
-            //r = getRotationMatrix((float)dx/m_rotation_scale, m_model_x);
-            r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_model_x);
+            r = getRotationMatrix((float)dx/m_rotation_scale, m_model_x);
+            //r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_model_x);
             break;
         case(Axis::y):
-            r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_model_y);
+            r = getRotationMatrix((float)dx/m_rotation_scale, m_model_y);
+            //r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_model_y);
             break;
         case(Axis::z):
-            r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_model_z);
+            r = getRotationMatrix((float)dx/m_rotation_scale, m_model_z);
+            //r = glm::rotate(mat4(1.0f), (float)dx/m_rotation_scale, m_model_z);
             break;
     }
     m_model_x = vec3(r*toVector(m_model_x));
